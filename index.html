@@ -78,17 +78,23 @@ main { max-width:1280px; margin:0 auto; padding:24px 48px 60px; display:grid; ga
 .filter-btn { font-size:11px; font-weight:600; padding:5px 12px; border-radius:20px; border:1.5px solid var(--gray-200); background:var(--white); color:var(--gray-500); cursor:pointer; transition:all 0.15s; }
 .filter-btn:hover { border-color:var(--blue); color:var(--blue); }
 .filter-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
-.group-others-row { display:flex; justify-content:flex-end; margin-bottom:-8px; }
-.switch-wrap { position:relative; display:inline-flex; align-items:center; gap:8px; }
-.switch-label { font-size:12px; font-weight:600; color:var(--gray-500); cursor:help; border-bottom:1px dashed var(--gray-200); }
-.switch { position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0; }
-.switch input { opacity:0; width:0; height:0; }
-.switch-slider { position:absolute; inset:0; background:var(--gray-200); transition:0.2s; border-radius:20px; cursor:pointer; }
-.switch-slider::before { position:absolute; content:""; height:16px; width:16px; left:2px; bottom:2px; background:#fff; transition:0.2s; border-radius:50%%; box-shadow:0 1px 2px rgba(0,0,0,0.25); }
+.group-others-row { display:flex; justify-content:flex-end; margin-bottom:-4px; }
+.group-others-control { display:inline-flex; align-items:center; gap:12px; background:var(--white); border:1px solid var(--gray-200); border-radius:24px; padding:8px 16px; box-shadow:0 2px 8px rgba(0,0,102,0.06); }
+.others-info { position:relative; display:inline-flex; align-items:center; }
+.switch-label { font-size:12px; font-weight:600; color:var(--gray-700); cursor:help; border-bottom:1.5px dashed var(--gray-200); padding-bottom:1px; }
+.others-info:hover .switch-label { color:var(--blue); border-color:var(--blue); }
+.switch { position:relative; display:inline-flex; align-items:center; width:40px; height:22px; flex-shrink:0; }
+.switch input { opacity:0; width:0; height:0; position:absolute; }
+.switch-slider { position:absolute; inset:0; background:var(--gray-200); transition:background 0.2s; border-radius:22px; cursor:pointer; box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); }
+.switch-slider::before { position:absolute; content:""; height:18px; width:18px; left:2px; top:2px; background:#fff; transition:transform 0.2s; border-radius:50%%; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
 .switch input:checked + .switch-slider { background:var(--blue); }
-.switch input:checked + .switch-slider::before { transform:translateX(16px); }
-.others-tooltip { display:none; position:absolute; top:calc(100%% + 8px); right:0; z-index:20; background:#fff; border:1px solid var(--gray-200); box-shadow:0 10px 28px rgba(0,0,102,0.16); border-radius:10px; padding:14px 16px; font-size:12px; color:var(--gray-700); width:260px; max-height:280px; overflow-y:auto; text-align:left; }
-.switch-label:hover ~ .others-tooltip { display:block; }
+.switch input:checked + .switch-slider::before { transform:translateX(18px); }
+.switch input:focus-visible + .switch-slider { outline:2px solid var(--blue); outline-offset:2px; }
+.others-tooltip { position:absolute; top:calc(100%% + 10px); right:-16px; z-index:30; background:#fff; border:1px solid var(--gray-200); box-shadow:0 14px 34px rgba(0,0,102,0.18); border-radius:10px; padding:14px 16px; font-size:12px; color:var(--gray-700); width:260px; max-height:280px; overflow-y:auto; text-align:left; scrollbar-width:thin; scrollbar-color:var(--gray-200) transparent; opacity:0; visibility:hidden; transform:translateY(-4px); transition:opacity 0.15s, transform 0.15s; pointer-events:none; }
+.others-tooltip.visible { opacity:1; visibility:visible; transform:translateY(0); pointer-events:auto; }
+.others-tooltip::-webkit-scrollbar { width:5px; }
+.others-tooltip::-webkit-scrollbar-track { background:transparent; }
+.others-tooltip::-webkit-scrollbar-thumb { background:var(--gray-200); border-radius:10px; }
 .others-tooltip .ot-row { font-weight:700; color:var(--gray-900); margin-bottom:4px; }
 .others-tooltip .ot-list { margin-top:8px; border-top:1px solid var(--gray-200); padding-top:8px; display:flex; flex-direction:column; gap:3px; }
 .others-tooltip .ot-item { display:flex; justify-content:space-between; gap:10px; }
@@ -161,14 +167,16 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 <div class="tabs-row" id="tabsRow"></div>
 <main>
   <div class="group-others-row">
-    <label class="switch-wrap">
-      <span class="switch-label" id="txt-groupOthers">Group Others</span>
-      <span class="switch">
+    <div class="group-others-control">
+      <span class="others-info" id="othersInfoWrap">
+        <span class="switch-label" id="txt-groupOthers">Group Others</span>
+        <div class="others-tooltip" id="othersTooltip"></div>
+      </span>
+      <label class="switch">
         <input type="checkbox" id="groupOthersCheckbox">
         <span class="switch-slider"></span>
-      </span>
-      <div class="others-tooltip" id="othersTooltip"></div>
-    </label>
+      </label>
+    </div>
   </div>
   <div class="row-2">
     <div class="card">
@@ -432,11 +440,11 @@ const I18N = {
     filterTop5: "Top 5", filterMid: "Medio (6\u201310)", filterOthers: "Otros",
     searchesPerMo: "b\u00fasquedas/mes",
     partialSuffix: " (parcial)",
-    groupOthersLabel: "Agrupar Others",
-    othersGroupLabel: "Others",
+    groupOthersLabel: "Agrupar otros",
+    othersGroupLabel: "Otros",
     othersVisiblePct: "Visible de forma independiente",
-    othersGroupedPct: "Agrupado en \u201cOthers\u201d",
-    othersHint: "Act\u00edvalo para agrupar las keywords menores en \u201cOthers\u201d una vez que sumen entre el 80% y el 90% del total.",
+    othersGroupedPct: "Agrupado en \u201cOtros\u201d",
+    othersHint: "Act\u00edvalo para agrupar las keywords menores en \u201cOtros\u201d una vez que sumen entre el 80% y el 90% del total.",
     othersNone: "No hay nada que agrupar \u2014 cada keyword ya se mantiene por encima del umbral del 80% por s\u00ed sola.",
     countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
   },
@@ -472,11 +480,11 @@ const I18N = {
     filterTop5: "Top 5", filterMid: "M\u00e9dio (6\u201310)", filterOthers: "Outros",
     searchesPerMo: "buscas/m\u00eas",
     partialSuffix: " (parcial)",
-    groupOthersLabel: "Agrupar Others",
-    othersGroupLabel: "Others",
+    groupOthersLabel: "Agrupar outros",
+    othersGroupLabel: "Outros",
     othersVisiblePct: "Vis\u00edvel de forma independente",
-    othersGroupedPct: "Agrupado em \u201cOthers\u201d",
-    othersHint: "Ative para agrupar as palavras-chave menores em \u201cOthers\u201d quando somarem entre 80% e 90% do total.",
+    othersGroupedPct: "Agrupado em \u201cOutros\u201d",
+    othersHint: "Ative para agrupar as palavras-chave menores em \u201cOutros\u201d quando somarem entre 80% e 90% do total.",
     othersNone: "Nada para agrupar \u2014 cada palavra-chave j\u00e1 se mant\u00e9m acima do limite de 80% por conta pr\u00f3pria.",
     countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM" },
   },
@@ -767,6 +775,23 @@ function wireGroupOthersToggle() {
   };
 }
 
+// Plain CSS ":hover ~ .tooltip" breaks the moment the cursor crosses the gap
+// between the label and the tooltip (or scrolls inside it) — it briefly
+// leaves the hovered element and the tooltip vanishes. Track hover on both
+// the label wrapper and the tooltip itself with a short close delay instead,
+// so moving into the tooltip (to read the list or scroll it) keeps it open.
+function wireOthersTooltip() {
+  const wrap = document.getElementById("othersInfoWrap");
+  const tooltip = document.getElementById("othersTooltip");
+  let hideTimer = null;
+  const show = () => { clearTimeout(hideTimer); tooltip.classList.add("visible"); };
+  const scheduleHide = () => { hideTimer = setTimeout(() => tooltip.classList.remove("visible"), 200); };
+  wrap.addEventListener("mouseenter", show);
+  wrap.addEventListener("mouseleave", scheduleHide);
+  tooltip.addEventListener("mouseenter", show);
+  tooltip.addEventListener("mouseleave", scheduleHide);
+}
+
 function renderCountry() {
   document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.toggle("active", DASHBOARD.countries[i].id === activeCountryId));
   const kws = visibleKeywords();
@@ -906,6 +931,7 @@ function renderDashboard(data) {
   wireDuolingoToggle();
   updateGroupOthersLabel();
   wireGroupOthersToggle();
+  wireOthersTooltip();
   activeCountryId = DASHBOARD.countries[0].id;
   buildTabs();
   renderCountry();

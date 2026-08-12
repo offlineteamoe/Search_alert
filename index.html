@@ -172,7 +172,7 @@ function showError(message) {
 }
 
 async function fetchDashboardData(accessToken) {
-  const url = "https://www.googleapis.com/drive/v3/files/" + DRIVE_FILE_ID + "?alt=media";
+  const url = "https://www.googleapis.com/drive/v3/files/" + DRIVE_FILE_ID + "?alt=media&supportsAllDrives=true";
   const response = await fetch(url, { headers: { Authorization: "Bearer " + accessToken } });
   if (response.status === 403) {
     throw new Error("403");

@@ -562,6 +562,13 @@ const I18N = {
 };
 
 let currentLang = localStorage.getItem("oe_dashboard_lang") || "en";
+// A stray localStorage value that isn't "en"/"es"/"pt" (e.g. leftover from a
+// past bug, or hand-testing) would otherwise crash every t() call on load —
+// fall back to "en" and repair the stored value instead of trusting it blindly.
+if (!I18N[currentLang]) {
+  currentLang = "en";
+  localStorage.setItem("oe_dashboard_lang", "en");
+}
 function t(key) { return I18N[currentLang][key]; }
 
 function applyStaticTranslations() {
@@ -599,8 +606,8 @@ function applyStaticTranslations() {
 }
 
 function setLanguage(lang) {
-  currentLang = lang;
-  localStorage.setItem("oe_dashboard_lang", lang);
+  currentLang = I18N[lang] ? lang : "en";
+  localStorage.setItem("oe_dashboard_lang", currentLang);
   applyStaticTranslations();
   updateDuolingoToggleLabel();
   updateGroupOthersLabel();

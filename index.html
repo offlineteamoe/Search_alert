@@ -167,7 +167,27 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 let DASHBOARD = null;
 const DRIVE_FILE_ID = "1dJnVQ9bbBXVN05SpVOL9ss-CT2muCJ1M";
 
-function showError(message, offerRequestAccess) {
+const TOKEN_CACHE_KEY = "oe_dashboard_token";
+
+function saveToken(accessToken, expiresInSeconds) {
+  const expiresAt = Date.now() + (expiresInSeconds * 1000);
+  localStorage.setItem(TOKEN_CACHE_KEY, JSON.stringify({ token: accessToken, expiresAt }));
+}
+
+function getCachedToken() {
+  try {
+    const raw = localStorage.getItem(TOKEN_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed.expiresAt > Date.now() + 30000 ? parsed.token : null;
+  } catch (e) { return null; }
+}
+
+function clearCachedToken() {
+  localStorage.removeItem(TOKEN_CACHE_KEY);
+}
+
+function showError(message, offerRequestAccess, technicalDetail) {
   const box = document.getElementById("errorBox");
   box.innerHTML = "";
   const p = document.createElement("div");
@@ -179,8 +199,25 @@ function showError(message, offerRequestAccess) {
     link.target = "_blank";
     link.rel = "noopener";
     link.className = "request-access-btn";
-    link.textContent = "Solicitar acceso a Google Drive";
+    link.textContent = "Solicitar acceso";
     box.appendChild(link);
+  }
+  if (technicalDetail) {
+    const details = document.createElement("details");
+    details.style.marginTop = "10px";
+    const summary = document.createElement("summary");
+    summary.style.cursor = "pointer";
+    summary.style.fontSize = "11px";
+    summary.style.color = "#a35a1f";
+    summary.textContent = "Detalles t\u00e9cnicos";
+    const pre = document.createElement("div");
+    pre.style.fontSize = "11px";
+    pre.style.marginTop = "6px";
+    pre.style.wordBreak = "break-word";
+    pre.textContent = technicalDetail;
+    details.appendChild(summary);
+    details.appendChild(pre);
+    box.appendChild(details);
   }
   box.style.display = "block";
 }
@@ -198,7 +235,7 @@ async function fetchDashboardData(accessToken) {
   return response.json();
 }
 
-async function onSignIn(accessToken) {
+async function onSignIn(accessToken, silent) {
   try {
     const data = await fetchDashboardData(accessToken);
     const loginScreen = document.getElementById("loginScreen");
@@ -209,14 +246,36 @@ async function onSignIn(accessToken) {
       renderDashboard(data);
     }, 380);
   } catch (err) {
+    clearCachedToken();
+    if (silent) return;
     let detail = err.body || err.message;
     try { detail = JSON.parse(err.body).error.message; } catch (e) {}
     if (err.status === 403) {
-      showError("No tienes permisos para ver este archivo (403: " + detail + "). Puedes solicitar acceso directamente:", true);
+      showError("No tienes permisos para ver esta informaci\u00f3n. Puedes solicitar acceso:", true, detail);
     } else {
-      showError("Error " + (err.status || "") + ": " + detail, false);
+      showError("No se pudo cargar la informaci\u00f3n. Intenta de nuevo.", false, detail);
     }
   }
+}
+
+let tokenClient = null;
+
+function ensureTokenClient() {
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: "832432252141-dcs35ujfvbqg42lotiln2ndmouq53r9n.apps.googleusercontent.com",
+      scope: "https://www.googleapis.com/auth/drive.readonly",
+      callback: (resp) => {
+        if (resp.access_token) {
+          saveToken(resp.access_token, resp.expires_in || 3600);
+          onSignIn(resp.access_token, false);
+        } else {
+          showError("No se pudo iniciar sesi\u00f3n con Google.", false, JSON.stringify(resp));
+        }
+      },
+    });
+  }
+  return tokenClient;
 }
 
 window.onload = () => {
@@ -225,19 +284,16 @@ window.onload = () => {
 
   document.querySelector("#gsiButton button").addEventListener("click", () => {
     try {
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: "832432252141-dcs35ujfvbqg42lotiln2ndmouq53r9n.apps.googleusercontent.com",
-        scope: "https://www.googleapis.com/auth/drive.readonly",
-        callback: (resp) => {
-          if (resp.access_token) onSignIn(resp.access_token);
-          else showError("No se pudo iniciar sesi\u00f3n con Google.");
-        },
-      });
-      tokenClient.requestAccessToken();
+      ensureTokenClient().requestAccessToken();
     } catch (err) {
-      showError("Configuraci\u00f3n de Google incompleta todav\u00eda (" + err.message + "). Avisa al equipo t\u00e9cnico.");
+      showError("El inicio de sesi\u00f3n con Google no est\u00e1 disponible todav\u00eda. Avisa al equipo t\u00e9cnico.", false, err.message);
     }
   });
+
+  // Remembered session: if we still have a non-expired token from a
+  // previous visit, skip straight to the dashboard — no click needed.
+  const cached = getCachedToken();
+  if (cached) onSignIn(cached, true);
 };
 
 
@@ -334,8 +390,7 @@ function wireDuolingoToggle() {
 
 function visibleKeywords() {
   const country = currentCountry();
-  const withIdx = country.keywords.map((k, i) => Object.assign({}, k, { _idx: i }));
-  return includeDuolingo ? withIdx : withIdx.filter(k => k.kw !== "duolingo");
+  return includeDuolingo ? country.keywords : country.keywords.filter(k => k.kw !== "duolingo");
 }
 
 function currentValue(k) {
@@ -359,7 +414,7 @@ function buildPie(kws) {
   if (pieChart) pieChart.destroy();
   pieChart = new Chart(document.getElementById("pieChart"), {
     type: "doughnut",
-    data: { labels: pieData.map(k=>cap(k.kw)), datasets:[{ data: pieData.map(k=>currentValue(k)), backgroundColor: pieData.map(k=>PAL[k._idx % PAL.length]), borderWidth:2, borderColor:"#fff", hoverOffset:8 }] },
+    data: { labels: pieData.map(k=>cap(k.kw)), datasets:[{ data: pieData.map(k=>currentValue(k)), backgroundColor: pieData.map(k=>PAL[k.color_idx % PAL.length]), borderWidth:2, borderColor:"#fff", hoverOffset:8 }] },
     options: { responsive:true, maintainAspectRatio:false, cutout:"62%",
       plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.label+": "+((ctx.raw/pieTotal)*100).toFixed(1)+"%  ("+ctx.raw.toLocaleString()+")" }, padding:10, cornerRadius:8 } } }
   });
@@ -369,7 +424,7 @@ function buildPie(kws) {
     const pct = ((currentValue(k)/pieTotal)*100).toFixed(1);
     const el = document.createElement("div");
     el.className = "legend-item";
-    el.innerHTML = '<span class="legend-dot" style="background:'+PAL[k._idx % PAL.length]+'"></span><span class="legend-kw">'+cap(k.kw)+'</span><span class="legend-pct">'+pct+'%</span>';
+    el.innerHTML = '<span class="legend-dot" style="background:'+PAL[k.color_idx % PAL.length]+'"></span><span class="legend-kw">'+cap(k.kw)+'</span><span class="legend-pct">'+pct+'%</span>';
     legendEl.appendChild(el);
   });
 }
@@ -379,7 +434,7 @@ function buildBar(kws) {
   if (barChart) barChart.destroy();
   barChart = new Chart(document.getElementById("barChart"), {
     type: "bar",
-    data: { labels: barData.map(k=>cap(k.kw)), datasets:[{ label:"Current SV", data: barData.map(k=>currentValue(k)), backgroundColor: barData.map(k=>PAL[k._idx % PAL.length]+"CC"), borderColor: barData.map(k=>PAL[k._idx % PAL.length]), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
+    data: { labels: barData.map(k=>cap(k.kw)), datasets:[{ label:"Current SV", data: barData.map(k=>currentValue(k)), backgroundColor: barData.map(k=>PAL[k.color_idx % PAL.length]+"CC"), borderColor: barData.map(k=>PAL[k.color_idx % PAL.length]), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
     options: { responsive:true, maintainAspectRatio:false, indexAxis:"y",
       plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.raw.toLocaleString()+" searches/mo" }, padding:10, cornerRadius:8 } },
       scales: { x:{ grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>fmtNum(v)} }, y:{ grid:{display:false}, ticks:{font:{...bf,size:11}, color:"#334155"} } } }
@@ -416,7 +471,7 @@ function buildTrend(kws) {
 
   const datasets = groupKws.map(k => ({
     label: cap(k.kw), data: k.m.slice(fromIdx, toIdx+1),
-    borderColor: PAL[k._idx % PAL.length], backgroundColor: PAL[k._idx % PAL.length]+"18",
+    borderColor: PAL[k.color_idx % PAL.length], backgroundColor: PAL[k.color_idx % PAL.length]+"18",
     borderWidth: k.kw === "open english" ? 3 : 2, pointRadius:3, pointHoverRadius:6, tension:0.3, fill:false,
     _monthlyTotals: monthlyTotals,
   }));
@@ -445,7 +500,7 @@ function buildTrendPct(kws) {
   const datasets = groupKws.map(k => ({
     label: cap(k.kw),
     data: k.m.slice(fromIdx, toIdx+1).map((v,mi) => monthlyTotals[mi] > 0 ? +(v/monthlyTotals[mi]*100).toFixed(2) : 0),
-    borderColor: PAL[k._idx % PAL.length], backgroundColor: PAL[k._idx % PAL.length]+"18",
+    borderColor: PAL[k.color_idx % PAL.length], backgroundColor: PAL[k.color_idx % PAL.length]+"18",
     borderWidth: k.kw === "open english" ? 3 : 2, pointRadius:3, pointHoverRadius:6, tension:0.3, fill:false,
   }));
 

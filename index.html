@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Branded Searches Share — Open English</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #0066FF; --blue-dark: #000066; --blue-light: #E5F5FF;
+  --orange: #FF6600; --white: #FFFFFF;
+  --gray-50: #F8FAFC; --gray-100: #F1F5F9; --gray-200: #E2E8F0;
+  --gray-500: #64748B; --gray-700: #334155; --gray-900: #0F172A;
+  --radius: 12px; --shadow: 0 2px 12px rgba(0,0,102,0.08);
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--gray-50); color: var(--gray-900); min-height: 100vh; }
+header { background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%); padding: 36px 48px 32px; position: relative; overflow: hidden; }
+header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:4px; background:var(--orange); }
+header::before { content:''; position:absolute; top:-60px; right:-60px; width:240px; height:240px; border-radius:50%; background:rgba(255,255,255,0.04); }
+.header-inner { max-width:1280px; margin:0 auto; display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+.header-eyebrow { font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.55); margin-bottom:8px; }
+header h1 { font-size:28px; font-weight:700; color:#fff; line-height:1.2; }
+header h1 span { color:var(--orange); }
+.header-meta { font-size:13px; color:rgba(255,255,255,0.55); margin-top:6px; }
+.ahrefs-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:6px; padding:5px 12px; font-size:11px; color:rgba(255,255,255,0.7); font-weight:500; margin-top:10px; }
+.ahrefs-badge b { color:#FF6600; }
+.header-stats { display:flex; gap:16px; flex-wrap:wrap; }
+.stat-pill { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:10px 18px; text-align:center; min-width:110px; }
+.stat-pill-val { font-size:22px; font-weight:700; color:#fff; line-height:1; }
+.stat-pill-label { font-size:10px; color:rgba(255,255,255,0.5); margin-top:3px; text-transform:uppercase; letter-spacing:0.08em; }
+.period-row { max-width:1280px; margin:0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 48px; background:var(--white); border-bottom:1px solid var(--gray-200); }
+.period-label { font-size:13px; color:var(--gray-500); font-weight:600; }
+.period-sep { font-size:13px; color:var(--gray-500); }
+.period-row select { font-size:13px; padding:6px 10px; border-radius:8px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-900); font-weight:600; cursor:pointer; }
+.period-spacer { flex:1; }
+.toggle-btn { font-size:12px; font-weight:600; padding:7px 14px; border-radius:20px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-700); cursor:pointer; }
+.toggle-btn:hover { border-color:var(--blue); color:var(--blue); }
+.tabs-row { max-width:1280px; margin:0 auto; display:flex; gap:8px; flex-wrap:wrap; padding:14px 48px; background:var(--gray-100); }
+.tab-btn { font-size:13px; font-weight:600; padding:8px 16px; border-radius:20px; border:1.5px solid var(--gray-200); background:var(--white); color:var(--gray-500); cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; }
+.tab-btn:hover { border-color:var(--blue); color:var(--blue); }
+.tab-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+.flag-icon { display:inline-flex; width:18px; height:13px; border-radius:2px; overflow:hidden; vertical-align:middle; margin-right:7px; box-shadow:0 0 0 1px rgba(0,0,0,0.1); flex-shrink:0; }
+.flag-icon svg { width:100%; height:100%; display:block; }
+main { max-width:1280px; margin:0 auto; padding:24px 48px 60px; display:grid; gap:28px; }
+.row-2 { display:grid; grid-template-columns:1fr 1.6fr; gap:28px; }
+.card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:28px 32px; border:1px solid var(--gray-200); }
+.card-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; gap:16px; flex-wrap:wrap; }
+.card-title { font-size:14px; font-weight:700; color:var(--gray-900); text-transform:uppercase; letter-spacing:0.06em; }
+.card-subtitle { font-size:12px; color:var(--gray-500); margin-top:3px; font-weight:400; }
+.tag { font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+.tag-blue { background:var(--blue-light); color:var(--blue); }
+.tag-orange { background:#FFF0E8; color:var(--orange); }
+.pie-layout { display:flex; gap:24px; align-items:center; }
+.pie-canvas-wrap { flex:0 0 240px; height:240px; position:relative; }
+.pie-legend { flex:1; display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; }
+.legend-item { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--gray-700); padding:4px 8px; border-radius:6px; }
+.legend-item:hover { background:var(--gray-100); }
+.legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.legend-kw { flex:1; font-weight:500; }
+.legend-pct { font-weight:700; color:var(--gray-900); min-width:42px; text-align:right; }
+.chart-wrap { position:relative; }
+.chart-wrap-bar { height:320px; }
+.chart-wrap-trend { height:380px; }
+.filter-row { display:flex; gap:8px; flex-wrap:wrap; }
+.filter-btn { font-size:11px; font-weight:600; padding:5px 12px; border-radius:20px; border:1.5px solid var(--gray-200); background:var(--white); color:var(--gray-500); cursor:pointer; transition:all 0.15s; }
+.filter-btn:hover { border-color:var(--blue); color:var(--blue); }
+.filter-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48px 32px; max-width:1280px; margin:0 auto; }
+@media(max-width:900px) {
+  header, main, footer, .tabs-row, .period-row { padding-left:20px; padding-right:20px; }
+  .row-2 { grid-template-columns:1fr; }
+  .pie-layout { flex-direction:column; }
+  .pie-canvas-wrap { flex:none; width:100%; }
+}
+.login-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%); }
+.login-card { background:#fff; border-radius:16px; padding:48px 40px; max-width:380px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+.login-card h1 { font-size:20px; margin-bottom:8px; }
+.login-card h1 span { color:var(--orange); }
+.login-card p { font-size:13px; color:var(--gray-500); margin-bottom:24px; }
+.error-box { background:#FFF0E8; border:1px solid var(--orange); color:#7a3300; border-radius:8px; padding:14px 16px; font-size:13px; margin-top:16px; text-align:left; display:none; }
+.fade-out { animation: fadeOut 0.4s ease forwards; }
+@keyframes fadeOut { to { opacity:0; transform:scale(0.98); } }
+
+#dashboardRoot { display:none; }
+</style>
+</head>
+<body>
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <h1>Branded Searches <span>Dashboard</span></h1>
+    <p>Sign in with your Open English Google account to view live data.</p>
+    <div id="gsiButton"></div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+</div>
+<div id="dashboardRoot">
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="header-eyebrow">Search Intelligence · LATAM + USA</div>
+      <h1>Branded Searches Share <span>— by Country</span></h1>
+      <div class="header-meta" id="headerRange">Live data via Ahrefs API</div>
+      <div class="ahrefs-badge">⚡ Data source: <b>Ahrefs</b> &nbsp;·&nbsp; Last updated: <span id="lastUpdated"></span></div>
+    </div>
+    <div class="header-stats">
+<div class="stat-pill"><div class="stat-pill-val" id="stat-countries">—</div><div class="stat-pill-label">Countries</div></div>
+<div class="stat-pill"><div class="stat-pill-val" id="stat-kw">—</div><div class="stat-pill-label">Branded KWs</div></div>
+<div class="stat-pill"><div class="stat-pill-val" id="stat-oe">—</div><div class="stat-pill-label">OE Share (All Regions)</div></div>
+</div>
+  </div>
+</header>
+<div class="period-row">
+  <span class="period-label">Period:</span>
+  <select id="fromSelect"></select>
+  <span class="period-sep">to</span>
+  <select id="toSelect"></select>
+  <button class="toggle-btn" id="allTimeBtn">All Time</button>
+  <div class="period-spacer"></div>
+  <button class="toggle-btn" id="duolingoToggle">Include Duolingo</button>
+</div>
+<div class="tabs-row" id="tabsRow"></div>
+<main>
+  <div class="row-2">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Market Share by Keyword</div><div class="card-subtitle">Selected period — percentage of total searches</div></div>
+        <span class="tag tag-blue">% Share</span>
+      </div>
+      <div class="pie-layout">
+        <div class="pie-canvas-wrap"><canvas id="pieChart"></canvas></div>
+        <div class="pie-legend" id="pieLegend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Search Volume by Keyword</div><div class="card-subtitle">Selected period — exact monthly search volume</div></div>
+        <span class="tag tag-orange">Exact SV</span>
+      </div>
+      <div class="chart-wrap chart-wrap-bar"><canvas id="barChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Monthly Trend — Volume</div><div class="card-subtitle">Absolute search volume · hover for exact values</div></div>
+      <div class="filter-row" id="filterRow"></div>
+    </div>
+    <div class="chart-wrap chart-wrap-trend"><canvas id="trendChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Monthly Trend — Share of Search</div><div class="card-subtitle">% of total searches per month · same groups as chart above</div></div>
+      <span class="tag tag-blue">% Share</span>
+    </div>
+    <div class="chart-wrap chart-wrap-trend"><canvas id="trendPctChart"></canvas></div>
+  </div>
+</main>
+<footer>Data source: Ahrefs Keywords Explorer · Open English SEO Team</footer>
+
+</div>
+<script>
+let DASHBOARD = null;
+const DRIVE_FILE_ID = "1dJnVQ9bbBXVN05SpVOL9ss-CT2muCJ1M";
+
+function showError(message) {
+  const box = document.getElementById("errorBox");
+  box.textContent = message;
+  box.style.display = "block";
+}
+
+async function fetchDashboardData(accessToken) {
+  const url = "https://www.googleapis.com/drive/v3/files/" + DRIVE_FILE_ID + "?alt=media";
+  const response = await fetch(url, { headers: { Authorization: "Bearer " + accessToken } });
+  if (response.status === 403) {
+    throw new Error("403");
+  }
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status);
+  }
+  return response.json();
+}
+
+async function onSignIn(accessToken) {
+  try {
+    const data = await fetchDashboardData(accessToken);
+    const loginScreen = document.getElementById("loginScreen");
+    loginScreen.classList.add("fade-out");
+    setTimeout(() => {
+      loginScreen.style.display = "none";
+      document.getElementById("dashboardRoot").style.display = "block";
+      renderDashboard(data);
+    }, 380);
+  } catch (err) {
+    if (err.message === "403") {
+      showError("No tienes permisos para ver esta informaci\u00f3n. Solicita acceso a la carpeta compartida del equipo de Marketing.");
+    } else {
+      showError("No se pudo cargar la informaci\u00f3n (" + err.message + "). Intenta de nuevo.");
+    }
+  }
+}
+
+window.onload = () => {
+  document.getElementById("gsiButton").innerHTML =
+    '<button style="background:#0066FF;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Continuar con Google</button>';
+
+  document.querySelector("#gsiButton button").addEventListener("click", () => {
+    try {
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: "832432252141-dcs35ujfvbqg42lotiln2ndmouq53r9n.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/drive.readonly",
+        callback: (resp) => {
+          if (resp.access_token) onSignIn(resp.access_token);
+          else showError("No se pudo iniciar sesi\u00f3n con Google.");
+        },
+      });
+      tokenClient.requestAccessToken();
+    } catch (err) {
+      showError("Configuraci\u00f3n de Google incompleta todav\u00eda (" + err.message + "). Avisa al equipo t\u00e9cnico.");
+    }
+  });
+};
+
+
+const PAL = ["#22C55E", "#0066FF", "#FF6600", "#7C3AED", "#06B6D4", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6", "#EF4444", "#84CC16", "#F97316", "#8B5CF6", "#64748B", "#A78BFA", "#34D399", "#FB923C", "#94A3B8", "#CBD5E1", "#FCD34D"];
+let activeCountryId = null;
+let pieChart, barChart, trendChart, trendPctChart;
+let activeGroup = "Top 5";
+let fromIdx = 0, toIdx = 0;
+let includeDuolingo = false;
+
+function fmtNum(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1)+"M";
+  if (n >= 1000) return (n/1000).toFixed(1)+"K";
+  return String(n);
+}
+function cap(s){ return s.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" "); }
+const bf = { family:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" };
+
+function realCountries() { return DASHBOARD.countries.filter(c => !c.isAggregate); }
+
+function setGlobalStats() {
+  const countries = realCountries();
+  document.getElementById("stat-countries").textContent = countries.length;
+  const totalKW = countries.reduce((a,c)=>a+c.keywords.length, 0);
+  document.getElementById("stat-kw").textContent = totalKW;
+  let totalAll = 0, totalOE = 0;
+  countries.forEach(c => {
+    c.keywords.forEach(k => { totalAll += k.sv; });
+    const oe = c.keywords.find(k => k.kw === "open english");
+    if (oe) totalOE += oe.sv;
+  });
+  document.getElementById("stat-oe").textContent = totalAll ? ((totalOE/totalAll)*100).toFixed(1)+"%" : "\u2014";
+  const months = DASHBOARD.months;
+  if (months.length) {
+    document.getElementById("headerRange").textContent = months[0] + " \u2013 " + months[months.length-1] + " \u00b7 Live data via Ahrefs API";
+  }
+}
+
+function buildTabs() {
+  const row = document.getElementById("tabsRow");
+  row.innerHTML = "";
+  DASHBOARD.countries.forEach(c => {
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (c.id === activeCountryId ? " active" : "");
+    btn.innerHTML = '<span class="flag-icon">' + c.flag_svg + '</span>' + c.name;
+    btn.addEventListener("click", () => { activeCountryId = c.id; activeGroup = "Top 5"; renderCountry(); });
+    row.appendChild(btn);
+  });
+}
+
+function currentCountry() {
+  return DASHBOARD.countries.find(c => c.id === activeCountryId);
+}
+
+function populatePeriodSelectors() {
+  const fromSel = document.getElementById("fromSelect");
+  const toSel = document.getElementById("toSelect");
+  fromSel.innerHTML = ""; toSel.innerHTML = "";
+  DASHBOARD.months.forEach((m, i) => {
+    const o1 = document.createElement("option"); o1.value = i; o1.textContent = m; fromSel.appendChild(o1);
+    const o2 = document.createElement("option"); o2.value = i; o2.textContent = m; toSel.appendChild(o2);
+  });
+  fromIdx = 0; toIdx = DASHBOARD.months.length - 1;
+  fromSel.value = fromIdx; toSel.value = toIdx;
+  fromSel.onchange = () => {
+    fromIdx = parseInt(fromSel.value, 10);
+    if (fromIdx > toIdx) { toIdx = fromIdx; toSel.value = toIdx; }
+    renderCountry();
+  };
+  toSel.onchange = () => {
+    toIdx = parseInt(toSel.value, 10);
+    if (toIdx < fromIdx) { fromIdx = toIdx; fromSel.value = fromIdx; }
+    renderCountry();
+  };
+  document.getElementById("allTimeBtn").onclick = () => {
+    fromIdx = 0; toIdx = DASHBOARD.months.length - 1;
+    fromSel.value = fromIdx; toSel.value = toIdx;
+    renderCountry();
+  };
+}
+
+function updateDuolingoToggleLabel() {
+  const btn = document.getElementById("duolingoToggle");
+  btn.textContent = includeDuolingo ? "\ud83d\udc41 Exclude Duolingo" : "\ud83d\udc41 Include Duolingo";
+}
+
+function wireDuolingoToggle() {
+  document.getElementById("duolingoToggle").onclick = () => {
+    includeDuolingo = !includeDuolingo;
+    updateDuolingoToggleLabel();
+    renderCountry();
+  };
+}
+
+function visibleKeywords() {
+  const country = currentCountry();
+  const withIdx = country.keywords.map((k, i) => Object.assign({}, k, { _idx: i }));
+  return includeDuolingo ? withIdx : withIdx.filter(k => k.kw !== "duolingo");
+}
+
+function currentValue(k) {
+  const v = k.m[toIdx];
+  return typeof v === "number" ? v : k.sv;
+}
+
+function renderCountry() {
+  document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.toggle("active", DASHBOARD.countries[i].id === activeCountryId));
+  const kws = visibleKeywords();
+  buildPie(kws);
+  buildBar(kws);
+  buildFilterRow(kws);
+  buildTrend(kws);
+  buildTrendPct(kws);
+}
+
+function buildPie(kws) {
+  const pieData = kws.filter(k=>currentValue(k)>0);
+  const pieTotal = pieData.reduce((s,k)=>s+currentValue(k),0);
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById("pieChart"), {
+    type: "doughnut",
+    data: { labels: pieData.map(k=>cap(k.kw)), datasets:[{ data: pieData.map(k=>currentValue(k)), backgroundColor: pieData.map(k=>PAL[k._idx % PAL.length]), borderWidth:2, borderColor:"#fff", hoverOffset:8 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout:"62%",
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.label+": "+((ctx.raw/pieTotal)*100).toFixed(1)+"%  ("+ctx.raw.toLocaleString()+")" }, padding:10, cornerRadius:8 } } }
+  });
+  const legendEl = document.getElementById("pieLegend");
+  legendEl.innerHTML = "";
+  pieData.forEach(k => {
+    const pct = ((currentValue(k)/pieTotal)*100).toFixed(1);
+    const el = document.createElement("div");
+    el.className = "legend-item";
+    el.innerHTML = '<span class="legend-dot" style="background:'+PAL[k._idx % PAL.length]+'"></span><span class="legend-kw">'+cap(k.kw)+'</span><span class="legend-pct">'+pct+'%</span>';
+    legendEl.appendChild(el);
+  });
+}
+
+function buildBar(kws) {
+  const barData = kws.filter(k=>currentValue(k)>0);
+  if (barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById("barChart"), {
+    type: "bar",
+    data: { labels: barData.map(k=>cap(k.kw)), datasets:[{ label:"Current SV", data: barData.map(k=>currentValue(k)), backgroundColor: barData.map(k=>PAL[k._idx % PAL.length]+"CC"), borderColor: barData.map(k=>PAL[k._idx % PAL.length]), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:"y",
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.raw.toLocaleString()+" searches/mo" }, padding:10, cornerRadius:8 } },
+      scales: { x:{ grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>fmtNum(v)} }, y:{ grid:{display:false}, ticks:{font:{...bf,size:11}, color:"#334155"} } } }
+  });
+}
+
+function buildFilterRow(kws) {
+  const sorted = [...kws].sort((a,b)=>currentValue(b)-currentValue(a));
+  const groups = { "Top 5": sorted.slice(0,5), "Mid (6\u201310)": sorted.slice(5,10), "Others": sorted.slice(10) };
+  window._trendGroups = groups;
+  const row = document.getElementById("filterRow");
+  row.innerHTML = "";
+  Object.keys(groups).forEach(g => {
+    if (groups[g].length === 0) return;
+    const btn = document.createElement("button");
+    btn.className = "filter-btn" + (g === activeGroup ? " active" : "");
+    btn.textContent = g;
+    btn.addEventListener("click", () => {
+      activeGroup = g;
+      document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      buildTrend(kws);
+      buildTrendPct(kws);
+    });
+    row.appendChild(btn);
+  });
+  if (!groups[activeGroup] || groups[activeGroup].length === 0) activeGroup = "Top 5";
+}
+
+function buildTrend(kws) {
+  const months = DASHBOARD.months.slice(fromIdx, toIdx+1);
+  const groupKws = (window._trendGroups && window._trendGroups[activeGroup]) || kws.slice(0,5);
+  const monthlyTotals = months.map((_, mi) => kws.reduce((s,k) => s + (k.m[fromIdx+mi] || 0), 0));
+
+  const datasets = groupKws.map(k => ({
+    label: cap(k.kw), data: k.m.slice(fromIdx, toIdx+1),
+    borderColor: PAL[k._idx % PAL.length], backgroundColor: PAL[k._idx % PAL.length]+"18",
+    borderWidth: k.kw === "open english" ? 3 : 2, pointRadius:3, pointHoverRadius:6, tension:0.3, fill:false,
+    _monthlyTotals: monthlyTotals,
+  }));
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById("trendChart"), {
+    type: "line",
+    data: { labels: months, datasets },
+    options: { responsive:true, maintainAspectRatio:false, interaction:{ mode:"index", intersect:false },
+      plugins: {
+        legend: { position:"bottom", labels:{ font:{...bf,size:11}, color:"#334155", boxWidth:12, boxHeight:12, padding:16, usePointStyle:true, pointStyle:"circle" } },
+        tooltip: { callbacks: { label: ctx => {
+          const vol = ctx.raw, total = ctx.dataset._monthlyTotals[ctx.dataIndex];
+          const pct = total > 0 ? ((vol/total)*100).toFixed(1) : "0.0";
+          return "  "+ctx.dataset.label+": "+vol.toLocaleString()+" ("+pct+"%)";
+        } }, padding:12, cornerRadius:8 } },
+      scales: { x:{ grid:{color:"rgba(0,0,0,0.04)"}, ticks:{font:{...bf,size:11}, color:"#64748B"} }, y:{ grid:{color:"rgba(0,0,0,0.04)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>fmtNum(v)} } } }
+  });
+}
+
+function buildTrendPct(kws) {
+  const months = DASHBOARD.months.slice(fromIdx, toIdx+1);
+  const groupKws = (window._trendGroups && window._trendGroups[activeGroup]) || kws.slice(0,5);
+  const monthlyTotals = months.map((_, mi) => kws.reduce((s,k) => s + (k.m[fromIdx+mi] || 0), 0));
+
+  const datasets = groupKws.map(k => ({
+    label: cap(k.kw),
+    data: k.m.slice(fromIdx, toIdx+1).map((v,mi) => monthlyTotals[mi] > 0 ? +(v/monthlyTotals[mi]*100).toFixed(2) : 0),
+    borderColor: PAL[k._idx % PAL.length], backgroundColor: PAL[k._idx % PAL.length]+"18",
+    borderWidth: k.kw === "open english" ? 3 : 2, pointRadius:3, pointHoverRadius:6, tension:0.3, fill:false,
+  }));
+
+  if (trendPctChart) trendPctChart.destroy();
+  trendPctChart = new Chart(document.getElementById("trendPctChart"), {
+    type: "line",
+    data: { labels: months, datasets },
+    options: { responsive:true, maintainAspectRatio:false, interaction:{ mode:"index", intersect:false },
+      plugins: {
+        legend: { position:"bottom", labels:{ font:{...bf,size:11}, color:"#334155", boxWidth:12, boxHeight:12, padding:16, usePointStyle:true, pointStyle:"circle" } },
+        tooltip: { callbacks: { label: ctx => "  "+ctx.dataset.label+": "+ctx.raw.toFixed(1)+"%" }, padding:12, cornerRadius:8 } },
+      scales: { x:{ grid:{color:"rgba(0,0,0,0.04)"}, ticks:{font:{...bf,size:11}, color:"#64748B"} }, y:{ min:0, grid:{color:"rgba(0,0,0,0.04)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>v+"%"} } } }
+  });
+}
+
+function renderDashboard(data) {
+  DASHBOARD = data;
+  document.getElementById("lastUpdated").textContent = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  setGlobalStats();
+  populatePeriodSelectors();
+  updateDuolingoToggleLabel();
+  wireDuolingoToggle();
+  activeCountryId = DASHBOARD.countries[0].id;
+  buildTabs();
+  renderCountry();
+}
+
+</script>
+</body>
+</html>

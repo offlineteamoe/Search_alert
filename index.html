@@ -694,13 +694,19 @@ function buildPie(kws) {
 
 function buildBar(kws) {
   const barData = kws.filter(k=>currentValue(k)>0).sort((a,b)=>currentValue(b)-currentValue(a));
+  // Fixed-height charts hide labels once there are enough bars (e.g. LATAM
+  // aggregates 50+ keywords) — grow the wrapper to fit every bar+label
+  // instead. The sibling "Market Share" card stretches to match via CSS
+  // grid's default row-stretch, so both cards stay bottom-aligned.
+  const wrap = document.getElementById("barChart").parentElement;
+  wrap.style.height = Math.max(320, barData.length * 26 + 50) + "px";
   if (barChart) barChart.destroy();
   barChart = new Chart(document.getElementById("barChart"), {
     type: "bar",
     data: { labels: barData.map(k=>cap(k.kw)), datasets:[{ label:"Current SV", data: barData.map(k=>currentValue(k)), backgroundColor: barData.map(k=>PAL[k.color_idx % PAL.length]+"CC"), borderColor: barData.map(k=>PAL[k.color_idx % PAL.length]), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
     options: { responsive:true, maintainAspectRatio:false, indexAxis:"y",
       plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.raw.toLocaleString()+" "+t("searchesPerMo") }, padding:10, cornerRadius:8 } },
-      scales: { x:{ grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>fmtNum(v)} }, y:{ grid:{display:false}, ticks:{font:{...bf,size:11}, color:"#334155"} } } }
+      scales: { x:{ grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>fmtNum(v)} }, y:{ grid:{display:false}, ticks:{font:{...bf,size:11}, color:"#334155", autoSkip:false} } } }
   });
 }
 

@@ -35,6 +35,7 @@ header h1 span { color:var(--orange); }
 .period-label { font-size:13px; color:var(--gray-500); font-weight:600; }
 .period-sep { font-size:13px; color:var(--gray-500); }
 .period-row select { font-size:13px; padding:6px 10px; border-radius:8px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-900); font-weight:600; cursor:pointer; }
+.partial-note { max-width:1280px; margin:0 auto; padding:10px 48px; background:#FFF8E1; color:#8a6d00; font-size:12px; font-weight:500; display:none; border-bottom:1px solid #F5DA6E; }
 .period-spacer { flex:1; }
 .toggle-btn { font-size:12px; font-weight:600; padding:7px 14px; border-radius:20px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-700); cursor:pointer; }
 .toggle-btn:hover { border-color:var(--blue); color:var(--blue); }
@@ -124,6 +125,7 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
   <div class="period-spacer"></div>
   <button class="toggle-btn" id="duolingoToggle">Include Duolingo</button>
 </div>
+<div class="partial-note" id="partialNote"></div>
 <div class="tabs-row" id="tabsRow"></div>
 <main>
   <div class="row-2">
@@ -348,29 +350,49 @@ function currentCountry() {
   return DASHBOARD.countries.find(c => c.id === activeCountryId);
 }
 
+function defaultToIdx() {
+  return typeof DASHBOARD.default_to_index === "number" ? DASHBOARD.default_to_index : DASHBOARD.months.length - 1;
+}
+
+function updatePartialNote() {
+  const note = document.getElementById("partialNote");
+  const isPartialSelected = DASHBOARD.partial_month_index != null && toIdx === DASHBOARD.partial_month_index;
+  if (isPartialSelected && DASHBOARD.partial_as_of) {
+    note.textContent = "\u26a0\ufe0f " + DASHBOARD.months[toIdx] + " es un mes en curso — datos parciales, actualizados hasta el " + DASHBOARD.partial_as_of + ".";
+    note.style.display = "block";
+  } else {
+    note.style.display = "none";
+  }
+}
+
 function populatePeriodSelectors() {
   const fromSel = document.getElementById("fromSelect");
   const toSel = document.getElementById("toSelect");
   fromSel.innerHTML = ""; toSel.innerHTML = "";
   DASHBOARD.months.forEach((m, i) => {
-    const o1 = document.createElement("option"); o1.value = i; o1.textContent = m; fromSel.appendChild(o1);
-    const o2 = document.createElement("option"); o2.value = i; o2.textContent = m; toSel.appendChild(o2);
+    const label = (i === DASHBOARD.partial_month_index) ? m + " (parcial)" : m;
+    const o1 = document.createElement("option"); o1.value = i; o1.textContent = label; fromSel.appendChild(o1);
+    const o2 = document.createElement("option"); o2.value = i; o2.textContent = label; toSel.appendChild(o2);
   });
-  fromIdx = 0; toIdx = DASHBOARD.months.length - 1;
+  fromIdx = 0; toIdx = defaultToIdx();
   fromSel.value = fromIdx; toSel.value = toIdx;
+  updatePartialNote();
   fromSel.onchange = () => {
     fromIdx = parseInt(fromSel.value, 10);
     if (fromIdx > toIdx) { toIdx = fromIdx; toSel.value = toIdx; }
+    updatePartialNote();
     renderCountry();
   };
   toSel.onchange = () => {
     toIdx = parseInt(toSel.value, 10);
     if (toIdx < fromIdx) { fromIdx = toIdx; fromSel.value = fromIdx; }
+    updatePartialNote();
     renderCountry();
   };
   document.getElementById("allTimeBtn").onclick = () => {
-    fromIdx = 0; toIdx = DASHBOARD.months.length - 1;
+    fromIdx = 0; toIdx = defaultToIdx();
     fromSel.value = fromIdx; toSel.value = toIdx;
+    updatePartialNote();
     renderCountry();
   };
 }

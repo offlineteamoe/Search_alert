@@ -36,10 +36,13 @@ header h1 span { color:var(--orange); }
 .period-sep { font-size:13px; color:var(--gray-500); }
 .period-row select { font-size:13px; padding:6px 10px; border-radius:8px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-900); font-weight:600; cursor:pointer; }
 .partial-note { max-width:1280px; margin:0 auto; padding:10px 48px; background:#FFF8E1; color:#8a6d00; font-size:12px; font-weight:500; display:none; border-bottom:1px solid #F5DA6E; }
-.lang-switcher { position:absolute; top:16px; right:20px; display:flex; gap:4px; z-index:2; }
+.lang-switcher { position:absolute; top:16px; right:20px; display:flex; align-items:center; gap:4px; z-index:2; }
 .lang-switcher button { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:rgba(255,255,255,0.7); font-size:11px; font-weight:700; padding:5px 9px; border-radius:6px; cursor:pointer; }
 .lang-switcher button:hover { background:rgba(255,255,255,0.2); color:#fff; }
 .lang-switcher button.active { background:#fff; color:var(--blue-dark); border-color:#fff; }
+.download-btn { display:inline-flex; align-items:center; gap:5px; background:#16A34A; border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; cursor:pointer; margin-right:10px; }
+.download-btn:hover { background:#15803D; }
+.download-btn:disabled { opacity:0.6; cursor:default; }
 .period-spacer { flex:1; }
 .toggle-btn { font-size:12px; font-weight:600; padding:7px 14px; border-radius:20px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-700); cursor:pointer; }
 .toggle-btn:hover { border-color:var(--blue); color:var(--blue); }
@@ -86,11 +89,11 @@ main { max-width:1280px; margin:0 auto; padding:24px 48px 60px; display:grid; ga
 .switch { position:relative; display:inline-flex; align-items:center; width:40px; height:22px; flex-shrink:0; }
 .switch input { opacity:0; width:0; height:0; position:absolute; }
 .switch-slider { position:absolute; inset:0; background:var(--gray-200); transition:background 0.2s; border-radius:22px; cursor:pointer; box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); }
-.switch-slider::before { position:absolute; content:""; height:18px; width:18px; left:2px; top:2px; background:#fff; transition:transform 0.2s; border-radius:50%%; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+.switch-slider::before { position:absolute; content:""; height:18px; width:18px; left:2px; top:2px; background:#fff; transition:transform 0.2s; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
 .switch input:checked + .switch-slider { background:var(--blue); }
 .switch input:checked + .switch-slider::before { transform:translateX(18px); }
 .switch input:focus-visible + .switch-slider { outline:2px solid var(--blue); outline-offset:2px; }
-.others-tooltip { position:absolute; top:calc(100%% + 10px); right:-16px; z-index:30; background:#fff; border:1px solid var(--gray-200); box-shadow:0 14px 34px rgba(0,0,102,0.18); border-radius:10px; padding:14px 16px; font-size:12px; color:var(--gray-700); width:260px; max-height:280px; overflow-y:auto; text-align:left; scrollbar-width:thin; scrollbar-color:var(--gray-200) transparent; opacity:0; visibility:hidden; transform:translateY(-4px); transition:opacity 0.15s, transform 0.15s; pointer-events:none; }
+.others-tooltip { position:absolute; top:calc(100% + 10px); right:-16px; z-index:30; background:#fff; border:1px solid var(--gray-200); box-shadow:0 14px 34px rgba(0,0,102,0.18); border-radius:10px; padding:14px 16px; font-size:12px; color:var(--gray-700); width:260px; max-height:280px; overflow-y:auto; text-align:left; scrollbar-width:thin; scrollbar-color:var(--gray-200) transparent; opacity:0; visibility:hidden; transform:translateY(-4px); transition:opacity 0.15s, transform 0.15s; pointer-events:none; }
 .others-tooltip.visible { opacity:1; visibility:visible; transform:translateY(0); pointer-events:auto; }
 .others-tooltip::-webkit-scrollbar { width:5px; }
 .others-tooltip::-webkit-scrollbar-track { background:transparent; }
@@ -133,6 +136,7 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 
 <header>
   <div class="lang-switcher" id="langSwitcher">
+    <button class="download-btn" id="downloadHtmlBtn" type="button">⬇ <span id="txt-downloadHtml">Download HTML</span></button>
     <button data-lang="en">EN</button>
     <button data-lang="es">ES</button>
     <button data-lang="pt">PT</button>
@@ -217,7 +221,43 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 </div>
 <script>
 let DASHBOARD = null;
+let currentAccessToken = null;
 const DRIVE_FILE_ID = "1dJnVQ9bbBXVN05SpVOL9ss-CT2muCJ1M";
+const REPORT_EMBEDDED_FILE_ID = "1z2nxQoK4TW9NXBMCfaLM1Ih0O9h3Rhrt";
+
+// Fetches the real report_embedded.html — the exact no-login file already
+// generated alongside index.html — through the viewer's own Drive session,
+// so the download is byte-identical and stays behind the same access gate
+// as the dashboard itself (only people who can sign in can produce a copy
+// to forward on).
+async function downloadStandaloneHtml() {
+  const btn = document.getElementById("downloadHtmlBtn");
+  const token = currentAccessToken || getCachedToken();
+  if (!token || !REPORT_EMBEDDED_FILE_ID) return;
+  btn.disabled = true;
+  try {
+    const url = "https://www.googleapis.com/drive/v3/files/" + REPORT_EMBEDDED_FILE_ID + "?alt=media&supportsAllDrives=true";
+    const response = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const html = await response.text();
+    const blob = new Blob([html], { type: "text/html" });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = "branded-searches-dashboard.html";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    alert("No se pudo descargar el archivo. Intenta de nuevo. (" + err.message + ")");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+const downloadBtnEl = document.getElementById("downloadHtmlBtn");
+if (downloadBtnEl) downloadBtnEl.onclick = downloadStandaloneHtml;
 
 const TOKEN_CACHE_KEY = "oe_dashboard_token";
 
@@ -290,6 +330,7 @@ async function fetchDashboardData(accessToken) {
 async function onSignIn(accessToken, silent) {
   try {
     const data = await fetchDashboardData(accessToken);
+    currentAccessToken = accessToken;
     const loginScreen = document.getElementById("loginScreen");
     loginScreen.classList.add("fade-out");
     setTimeout(() => {
@@ -406,6 +447,8 @@ const I18N = {
     othersGroupedPct: "Grouped into \u201cOthers\u201d",
     othersHint: "Turn this on to group minor keywords into \u201cOthers\u201d once they add up to 80\u201390% of the total.",
     othersNone: "Nothing to group \u2014 every keyword already stays above the 80% threshold on its own.",
+    downloadHtmlLabel: "Download HTML",
+    downloadHtmlTitle: "Download a self-contained copy of this dashboard (data included, no login needed) to send to anyone.",
     countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
   },
   es: {
@@ -446,6 +489,8 @@ const I18N = {
     othersGroupedPct: "Agrupado en \u201cOtros\u201d",
     othersHint: "Act\u00edvalo para agrupar las keywords menores en \u201cOtros\u201d una vez que sumen entre el 80% y el 90% del total.",
     othersNone: "No hay nada que agrupar \u2014 cada keyword ya se mantiene por encima del umbral del 80% por s\u00ed sola.",
+    downloadHtmlLabel: "Descargar HTML",
+    downloadHtmlTitle: "Descarga una copia aut\u00f3noma de este tablero (con los datos incluidos, sin necesidad de iniciar sesi\u00f3n) para envi\u00e1rsela a cualquier persona.",
     countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
   },
   pt: {
@@ -486,6 +531,8 @@ const I18N = {
     othersGroupedPct: "Agrupado em \u201cOutros\u201d",
     othersHint: "Ative para agrupar as palavras-chave menores em \u201cOutros\u201d quando somarem entre 80% e 90% do total.",
     othersNone: "Nada para agrupar \u2014 cada palavra-chave j\u00e1 se mant\u00e9m acima do limite de 80% por conta pr\u00f3pria.",
+    downloadHtmlLabel: "Baixar HTML",
+    downloadHtmlTitle: "Baixe uma c\u00f3pia aut\u00f4noma deste painel (com os dados inclu\u00eddos, sem necessidade de login) para enviar a qualquer pessoa.",
     countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM" },
   },
 };
@@ -521,6 +568,10 @@ function applyStaticTranslations() {
   document.getElementById("txt-trendPctSub").textContent = t("trendPctSub");
   document.getElementById("txt-footer").textContent = t("footer");
   document.querySelectorAll("#langSwitcher button").forEach(b => b.classList.toggle("active", b.dataset.lang === currentLang));
+  const dlLabel = document.getElementById("txt-downloadHtml");
+  if (dlLabel) dlLabel.textContent = t("downloadHtmlLabel");
+  const dlBtn = document.getElementById("downloadHtmlBtn");
+  if (dlBtn) dlBtn.title = t("downloadHtmlTitle");
 }
 
 function setLanguage(lang) {

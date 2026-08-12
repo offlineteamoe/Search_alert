@@ -672,7 +672,7 @@ function renderCountry() {
 }
 
 function buildPie(kws) {
-  const pieData = kws.filter(k=>currentValue(k)>0);
+  const pieData = kws.filter(k=>currentValue(k)>0).sort((a,b)=>currentValue(b)-currentValue(a));
   const pieTotal = pieData.reduce((s,k)=>s+currentValue(k),0);
   if (pieChart) pieChart.destroy();
   pieChart = new Chart(document.getElementById("pieChart"), {
@@ -693,7 +693,7 @@ function buildPie(kws) {
 }
 
 function buildBar(kws) {
-  const barData = kws.filter(k=>currentValue(k)>0);
+  const barData = kws.filter(k=>currentValue(k)>0).sort((a,b)=>currentValue(b)-currentValue(a));
   if (barChart) barChart.destroy();
   barChart = new Chart(document.getElementById("barChart"), {
     type: "bar",

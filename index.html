@@ -61,7 +61,11 @@ main { max-width:1280px; margin:0 auto; padding:24px 48px 60px; display:grid; ga
 .tag-orange { background:#FFF0E8; color:var(--orange); }
 .pie-layout { display:flex; gap:24px; align-items:center; }
 .pie-canvas-wrap { flex:0 0 240px; height:240px; position:relative; }
-.pie-legend { flex:1; display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; }
+.pie-legend { flex:1; display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--gray-200) transparent; }
+.pie-legend::-webkit-scrollbar { width:5px; }
+.pie-legend::-webkit-scrollbar-track { background:transparent; }
+.pie-legend::-webkit-scrollbar-thumb { background:var(--gray-200); border-radius:10px; }
+.pie-legend::-webkit-scrollbar-thumb:hover { background:var(--gray-500); }
 .legend-item { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--gray-700); padding:4px 8px; border-radius:6px; }
 .legend-item:hover { background:var(--gray-100); }
 .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }

@@ -485,15 +485,22 @@ function realCountries() { return DASHBOARD.countries.filter(c => !c.isAggregate
 
 function setGlobalStats() {
   const countries = realCountries();
-  document.getElementById("stat-countries").textContent = countries.length;
-  const totalKW = countries.reduce((a,c)=>a+c.keywords.length, 0);
-  document.getElementById("stat-kw").textContent = totalKW;
-  let totalAll = 0, totalOE = 0;
+  let countedCountries = 0, totalKW = 0, totalAll = 0, totalOE = 0;
   countries.forEach(c => {
-    c.keywords.forEach(k => { totalAll += k.sv; });
-    const oe = c.keywords.find(k => k.kw === "open english");
-    if (oe) totalOE += oe.sv;
+    let countryHasData = false;
+    c.keywords.forEach(k => {
+      const v = currentValue(k);
+      if (v > 0) {
+        totalKW += 1;
+        countryHasData = true;
+      }
+      totalAll += v;
+      if (k.kw === "open english") totalOE += v;
+    });
+    if (countryHasData) countedCountries += 1;
   });
+  document.getElementById("stat-countries").textContent = countedCountries;
+  document.getElementById("stat-kw").textContent = totalKW;
   document.getElementById("stat-oe").textContent = totalAll ? ((totalOE/totalAll)*100).toFixed(1)+"%" : "\u2014";
   const months = DASHBOARD.months;
   if (months.length) {
@@ -547,12 +554,25 @@ function relabelPeriodSelectors() {
   });
 }
 
+function updateSelectConstraints() {
+  const fromSel = document.getElementById("fromSelect");
+  const toSel = document.getElementById("toSelect");
+  Array.from(fromSel.options).forEach((opt, i) => { opt.disabled = i > toIdx; });
+  Array.from(toSel.options).forEach((opt, i) => { opt.disabled = i < fromIdx; });
+}
+
+function onRangeChanged() {
+  updateSelectConstraints();
+  updatePartialNote();
+  setGlobalStats();
+  renderCountry();
+}
+
 function setRange(newFromIdx, newToIdx) {
   fromIdx = newFromIdx; toIdx = newToIdx;
   document.getElementById("fromSelect").value = fromIdx;
   document.getElementById("toSelect").value = toIdx;
-  updatePartialNote();
-  renderCountry();
+  onRangeChanged();
 }
 
 function populatePeriodSelectors() {
@@ -569,18 +589,19 @@ function populatePeriodSelectors() {
   fromIdx = Math.max(0, defaultTo - 12);
   toIdx = defaultTo;
   fromSel.value = fromIdx; toSel.value = toIdx;
+  updateSelectConstraints();
   updatePartialNote();
   fromSel.onchange = () => {
+    // Picking a "from" month always pushes "to" forward if needed — the
+    // list of "to" options is also narrowed so this rarely has to kick in.
     fromIdx = parseInt(fromSel.value, 10);
     if (fromIdx > toIdx) { toIdx = fromIdx; toSel.value = toIdx; }
-    updatePartialNote();
-    renderCountry();
+    onRangeChanged();
   };
   toSel.onchange = () => {
     toIdx = parseInt(toSel.value, 10);
     if (toIdx < fromIdx) { fromIdx = toIdx; fromSel.value = fromIdx; }
-    updatePartialNote();
-    renderCountry();
+    onRangeChanged();
   };
   document.getElementById("allTimeBtn").onclick = () => setRange(0, defaultToIdx());
   document.getElementById("lastYearBtn").onclick = () => setRange(Math.max(0, defaultToIdx() - 12), defaultToIdx());
@@ -742,8 +763,8 @@ function renderDashboard(data) {
   document.getElementById("lastUpdated").textContent = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
   applyStaticTranslations();
   wireLangSwitcher();
-  setGlobalStats();
   populatePeriodSelectors();
+  setGlobalStats();
   updateDuolingoToggleLabel();
   wireDuolingoToggle();
   activeCountryId = DASHBOARD.countries[0].id;

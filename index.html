@@ -240,7 +240,7 @@ async function downloadStandaloneHtml() {
   btn.disabled = true;
   try {
     const url = "https://www.googleapis.com/drive/v3/files/" + REPORT_EMBEDDED_FILE_ID + "?alt=media&supportsAllDrives=true";
-    const response = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+    const response = await fetch(url, { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
     if (!response.ok) throw new Error("HTTP " + response.status);
     const html = await response.text();
     const blob = new Blob([html], { type: "text/html" });
@@ -318,8 +318,12 @@ function showError(message, offerRequestAccess, technicalDetail) {
 }
 
 async function fetchDashboardData(accessToken) {
+  // cache: "no-store" is deliberate — this file changes multiple times a
+  // day, and the default fetch cache mode let the browser reuse a stale
+  // response across a refresh (worked right after login, went empty on
+  // reload) since Drive's response headers don't rule that out on their own.
   const url = "https://www.googleapis.com/drive/v3/files/" + DRIVE_FILE_ID + "?alt=media&supportsAllDrives=true";
-  const response = await fetch(url, { headers: { Authorization: "Bearer " + accessToken } });
+  const response = await fetch(url, { headers: { Authorization: "Bearer " + accessToken }, cache: "no-store" });
   if (!response.ok) {
     const bodyText = await response.text();
     const err = new Error("HTTP " + response.status);

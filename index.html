@@ -131,6 +131,9 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
   <span class="period-sep" id="txt-to">to</span>
   <select id="toSelect"></select>
   <button class="toggle-btn" id="allTimeBtn">All Time</button>
+  <button class="toggle-btn" id="lastYearBtn">Last Complete Year</button>
+  <button class="toggle-btn" id="lastMonthBtn">Last Complete Month</button>
+  <button class="toggle-btn" id="currentPartialBtn">Current Month (Partial)</button>
   <div class="period-spacer"></div>
   <button class="toggle-btn" id="duolingoToggle">Include Duolingo</button>
 </div>
@@ -140,7 +143,7 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
   <div class="row-2">
     <div class="card">
       <div class="card-header">
-        <div><div class="card-title" id="txt-pieTitle">Market Share by Keyword</div><div class="card-subtitle" id="txt-pieSub">Selected period — percentage of total searches</div></div>
+        <div><div class="card-title" id="txt-pieTitle">Market Share</div><div class="card-subtitle" id="txt-pieSub">Avg SV in period · % of total searches</div></div>
         <span class="tag tag-blue" id="txt-pctShare1">% Share</span>
       </div>
       <div class="pie-layout">
@@ -150,7 +153,7 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
     </div>
     <div class="card">
       <div class="card-header">
-        <div><div class="card-title" id="txt-barTitle">Search Volume by Keyword</div><div class="card-subtitle" id="txt-barSub">Selected period — exact monthly search volume</div></div>
+        <div><div class="card-title" id="txt-barTitle">Search Volume by Keyword</div><div class="card-subtitle" id="txt-barSub">Monthly average SV in the selected period</div></div>
         <span class="tag tag-orange" id="txt-exactSv">Exact SV</span>
       </div>
       <div class="chart-wrap chart-wrap-bar"><canvas id="barChart"></canvas></div>
@@ -336,13 +339,16 @@ const I18N = {
     period: "Period:",
     to: "to",
     allTime: "All Time",
+    lastYear: "Last Complete Year",
+    lastMonth: "Last Complete Month",
+    currentPartial: "Current Month (Partial)",
     includeDuolingo: "\ud83d\udc41 Include Duolingo",
     excludeDuolingo: "\ud83d\udc41 Exclude Duolingo",
-    pieTitle: "Market Share by Keyword",
-    pieSub: "Selected period \u2014 percentage of total searches",
+    pieTitle: "Market Share",
+    pieSub: "Avg SV in period \u00b7 % of total searches",
     pctShare: "% Share",
     barTitle: "Search Volume by Keyword",
-    barSub: "Selected period \u2014 exact monthly search volume",
+    barSub: "Monthly average SV in the selected period",
     exactSv: "Exact SV",
     trendTitle: "Monthly Trend \u2014 Volume",
     trendSub: "Absolute search volume \u00b7 hover for exact values",
@@ -367,13 +373,16 @@ const I18N = {
     period: "Per\u00edodo:",
     to: "a",
     allTime: "Todo el Tiempo",
+    lastYear: "\u00daltimo A\u00f1o Completo",
+    lastMonth: "\u00daltimo Mes Completo",
+    currentPartial: "Mes Actual (Parcial)",
     includeDuolingo: "\ud83d\udc41 Incluir Duolingo",
     excludeDuolingo: "\ud83d\udc41 Excluir Duolingo",
-    pieTitle: "Participaci\u00f3n de Mercado por Marca",
-    pieSub: "Per\u00edodo seleccionado \u2014 porcentaje del total de b\u00fasquedas",
+    pieTitle: "Participaci\u00f3n de Mercado",
+    pieSub: "SV promedio en el per\u00edodo \u00b7 % del total de b\u00fasquedas",
     pctShare: "% Share",
     barTitle: "Volumen de B\u00fasqueda por Marca",
-    barSub: "Per\u00edodo seleccionado \u2014 volumen exacto de b\u00fasquedas mensuales",
+    barSub: "SV promedio mensual en el per\u00edodo seleccionado",
     exactSv: "SV Exacto",
     trendTitle: "Tendencia Mensual \u2014 Volumen",
     trendSub: "Volumen absoluto de b\u00fasquedas \u00b7 pasa el cursor para ver valores exactos",
@@ -398,13 +407,16 @@ const I18N = {
     period: "Per\u00edodo:",
     to: "a",
     allTime: "Todo o Per\u00edodo",
+    lastYear: "\u00daltimo Ano Completo",
+    lastMonth: "\u00daltimo M\u00eas Completo",
+    currentPartial: "M\u00eas Atual (Parcial)",
     includeDuolingo: "\ud83d\udc41 Incluir Duolingo",
     excludeDuolingo: "\ud83d\udc41 Excluir Duolingo",
-    pieTitle: "Participa\u00e7\u00e3o de Mercado por Marca",
-    pieSub: "Per\u00edodo selecionado \u2014 percentual do total de buscas",
+    pieTitle: "Participa\u00e7\u00e3o de Mercado",
+    pieSub: "SV m\u00e9dio no per\u00edodo \u00b7 % do total de buscas",
     pctShare: "% Share",
     barTitle: "Volume de Busca por Marca",
-    barSub: "Per\u00edodo selecionado \u2014 volume exato de buscas mensais",
+    barSub: "M\u00e9dia mensal de SV no per\u00edodo selecionado",
     exactSv: "SV Exato",
     trendTitle: "Tend\u00eancia Mensal \u2014 Volume",
     trendSub: "Volume absoluto de buscas \u00b7 passe o mouse para ver valores exatos",
@@ -434,6 +446,9 @@ function applyStaticTranslations() {
   document.getElementById("txt-period").textContent = t("period");
   document.getElementById("txt-to").textContent = t("to");
   document.getElementById("allTimeBtn").textContent = t("allTime");
+  document.getElementById("lastYearBtn").textContent = t("lastYear");
+  document.getElementById("lastMonthBtn").textContent = t("lastMonth");
+  document.getElementById("currentPartialBtn").textContent = t("currentPartial");
   document.getElementById("txt-pieTitle").textContent = t("pieTitle");
   document.getElementById("txt-pieSub").textContent = t("pieSub");
   document.getElementById("txt-pctShare1").textContent = t("pctShare");
@@ -532,6 +547,14 @@ function relabelPeriodSelectors() {
   });
 }
 
+function setRange(newFromIdx, newToIdx) {
+  fromIdx = newFromIdx; toIdx = newToIdx;
+  document.getElementById("fromSelect").value = fromIdx;
+  document.getElementById("toSelect").value = toIdx;
+  updatePartialNote();
+  renderCountry();
+}
+
 function populatePeriodSelectors() {
   const fromSel = document.getElementById("fromSelect");
   const toSel = document.getElementById("toSelect");
@@ -541,7 +564,10 @@ function populatePeriodSelectors() {
     const o1 = document.createElement("option"); o1.value = i; o1.textContent = label; fromSel.appendChild(o1);
     const o2 = document.createElement("option"); o2.value = i; o2.textContent = label; toSel.appendChild(o2);
   });
-  fromIdx = 0; toIdx = defaultToIdx();
+  // Default view: last complete year (12 months back from the last complete month).
+  const defaultTo = defaultToIdx();
+  fromIdx = Math.max(0, defaultTo - 12);
+  toIdx = defaultTo;
   fromSel.value = fromIdx; toSel.value = toIdx;
   updatePartialNote();
   fromSel.onchange = () => {
@@ -556,11 +582,12 @@ function populatePeriodSelectors() {
     updatePartialNote();
     renderCountry();
   };
-  document.getElementById("allTimeBtn").onclick = () => {
-    fromIdx = 0; toIdx = defaultToIdx();
-    fromSel.value = fromIdx; toSel.value = toIdx;
-    updatePartialNote();
-    renderCountry();
+  document.getElementById("allTimeBtn").onclick = () => setRange(0, defaultToIdx());
+  document.getElementById("lastYearBtn").onclick = () => setRange(Math.max(0, defaultToIdx() - 12), defaultToIdx());
+  document.getElementById("lastMonthBtn").onclick = () => setRange(defaultToIdx(), defaultToIdx());
+  document.getElementById("currentPartialBtn").onclick = () => {
+    if (DASHBOARD.partial_month_index == null) return;
+    setRange(DASHBOARD.partial_month_index, DASHBOARD.partial_month_index);
   };
 }
 
@@ -583,8 +610,12 @@ function visibleKeywords() {
 }
 
 function currentValue(k) {
-  const v = k.m[toIdx];
-  return typeof v === "number" ? v : k.sv;
+  let sum = 0, count = 0;
+  for (let i = fromIdx; i <= toIdx; i++) {
+    const v = k.m[i];
+    if (typeof v === "number") { sum += v; count++; }
+  }
+  return count > 0 ? Math.round(sum / count) : (k.sv || 0);
 }
 
 function renderCountry() {

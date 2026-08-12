@@ -36,6 +36,10 @@ header h1 span { color:var(--orange); }
 .period-sep { font-size:13px; color:var(--gray-500); }
 .period-row select { font-size:13px; padding:6px 10px; border-radius:8px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-900); font-weight:600; cursor:pointer; }
 .partial-note { max-width:1280px; margin:0 auto; padding:10px 48px; background:#FFF8E1; color:#8a6d00; font-size:12px; font-weight:500; display:none; border-bottom:1px solid #F5DA6E; }
+.lang-switcher { position:absolute; top:16px; right:20px; display:flex; gap:4px; z-index:2; }
+.lang-switcher button { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:rgba(255,255,255,0.7); font-size:11px; font-weight:700; padding:5px 9px; border-radius:6px; cursor:pointer; }
+.lang-switcher button:hover { background:rgba(255,255,255,0.2); color:#fff; }
+.lang-switcher button.active { background:#fff; color:var(--blue-dark); border-color:#fff; }
 .period-spacer { flex:1; }
 .toggle-btn { font-size:12px; font-weight:600; padding:7px 14px; border-radius:20px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-700); cursor:pointer; }
 .toggle-btn:hover { border-color:var(--blue); color:var(--blue); }
@@ -102,24 +106,29 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 <div id="dashboardRoot">
 
 <header>
+  <div class="lang-switcher" id="langSwitcher">
+    <button data-lang="en">EN</button>
+    <button data-lang="es">ES</button>
+    <button data-lang="pt">PT</button>
+  </div>
   <div class="header-inner">
     <div>
-      <div class="header-eyebrow">Search Intelligence · LATAM + USA</div>
-      <h1>Branded Searches Share <span>— by Country</span></h1>
+      <div class="header-eyebrow" id="txt-eyebrow">Search Intelligence · LATAM + USA</div>
+      <h1><span id="txt-title">Branded Searches Share</span> <span id="txt-titleSuffix">— by Country</span></h1>
       <div class="header-meta" id="headerRange">Live data via Ahrefs API</div>
-      <div class="ahrefs-badge">⚡ Data source: <b>Ahrefs</b> &nbsp;·&nbsp; Last updated: <span id="lastUpdated"></span></div>
+      <div class="ahrefs-badge">⚡ <span id="txt-dataSource">Data source</span>: <b>Ahrefs</b> &nbsp;·&nbsp; <span id="txt-lastUpdated">Last updated</span>: <span id="lastUpdated"></span></div>
     </div>
     <div class="header-stats">
-<div class="stat-pill"><div class="stat-pill-val" id="stat-countries">—</div><div class="stat-pill-label">Countries</div></div>
-<div class="stat-pill"><div class="stat-pill-val" id="stat-kw">—</div><div class="stat-pill-label">Branded KWs</div></div>
-<div class="stat-pill"><div class="stat-pill-val" id="stat-oe">—</div><div class="stat-pill-label">OE Share (All Regions)</div></div>
+<div class="stat-pill"><div class="stat-pill-val" id="stat-countries">—</div><div class="stat-pill-label" id="txt-statCountries">Countries</div></div>
+<div class="stat-pill"><div class="stat-pill-val" id="stat-kw">—</div><div class="stat-pill-label" id="txt-statKw">Branded KWs</div></div>
+<div class="stat-pill"><div class="stat-pill-val" id="stat-oe">—</div><div class="stat-pill-label" id="txt-statOe">OE Share (All Regions)</div></div>
 </div>
   </div>
 </header>
 <div class="period-row">
-  <span class="period-label">Period:</span>
+  <span class="period-label" id="txt-period">Period:</span>
   <select id="fromSelect"></select>
-  <span class="period-sep">to</span>
+  <span class="period-sep" id="txt-to">to</span>
   <select id="toSelect"></select>
   <button class="toggle-btn" id="allTimeBtn">All Time</button>
   <div class="period-spacer"></div>
@@ -131,8 +140,8 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
   <div class="row-2">
     <div class="card">
       <div class="card-header">
-        <div><div class="card-title">Market Share by Keyword</div><div class="card-subtitle">Selected period — percentage of total searches</div></div>
-        <span class="tag tag-blue">% Share</span>
+        <div><div class="card-title" id="txt-pieTitle">Market Share by Keyword</div><div class="card-subtitle" id="txt-pieSub">Selected period — percentage of total searches</div></div>
+        <span class="tag tag-blue" id="txt-pctShare1">% Share</span>
       </div>
       <div class="pie-layout">
         <div class="pie-canvas-wrap"><canvas id="pieChart"></canvas></div>
@@ -141,28 +150,28 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
     </div>
     <div class="card">
       <div class="card-header">
-        <div><div class="card-title">Search Volume by Keyword</div><div class="card-subtitle">Selected period — exact monthly search volume</div></div>
-        <span class="tag tag-orange">Exact SV</span>
+        <div><div class="card-title" id="txt-barTitle">Search Volume by Keyword</div><div class="card-subtitle" id="txt-barSub">Selected period — exact monthly search volume</div></div>
+        <span class="tag tag-orange" id="txt-exactSv">Exact SV</span>
       </div>
       <div class="chart-wrap chart-wrap-bar"><canvas id="barChart"></canvas></div>
     </div>
   </div>
   <div class="card">
     <div class="card-header">
-      <div><div class="card-title">Monthly Trend — Volume</div><div class="card-subtitle">Absolute search volume · hover for exact values</div></div>
+      <div><div class="card-title" id="txt-trendTitle">Monthly Trend — Volume</div><div class="card-subtitle" id="txt-trendSub">Absolute search volume · hover for exact values</div></div>
       <div class="filter-row" id="filterRow"></div>
     </div>
     <div class="chart-wrap chart-wrap-trend"><canvas id="trendChart"></canvas></div>
   </div>
   <div class="card">
     <div class="card-header">
-      <div><div class="card-title">Monthly Trend — Share of Search</div><div class="card-subtitle">% of total searches per month · same groups as chart above</div></div>
-      <span class="tag tag-blue">% Share</span>
+      <div><div class="card-title" id="txt-trendPctTitle">Monthly Trend — Share of Search</div><div class="card-subtitle" id="txt-trendPctSub">% of total searches per month · same groups as chart above</div></div>
+      <span class="tag tag-blue" id="txt-pctShare2">% Share</span>
     </div>
     <div class="chart-wrap chart-wrap-trend"><canvas id="trendPctChart"></canvas></div>
   </div>
 </main>
-<footer>Data source: Ahrefs Keywords Explorer · Open English SEO Team</footer>
+<footer id="txt-footer">Data source: Ahrefs Keywords Explorer · Open English SEO Team</footer>
 
 </div>
 <script>
@@ -302,7 +311,7 @@ window.onload = () => {
 const PAL = ["#22C55E", "#0066FF", "#FF6600", "#7C3AED", "#06B6D4", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6", "#EF4444", "#84CC16", "#F97316", "#8B5CF6", "#64748B", "#A78BFA", "#34D399", "#FB923C", "#94A3B8", "#CBD5E1", "#FCD34D"];
 let activeCountryId = null;
 let pieChart, barChart, trendChart, trendPctChart;
-let activeGroup = "Top 5";
+let activeGroup = "top5";
 let fromIdx = 0, toIdx = 0;
 let includeDuolingo = false;
 
@@ -313,6 +322,149 @@ function fmtNum(n) {
 }
 function cap(s){ return s.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" "); }
 const bf = { family:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" };
+
+const I18N = {
+  en: {
+    eyebrow: "Search Intelligence \u00b7 LATAM + USA",
+    title: "Branded Searches Share",
+    titleSuffix: "\u2014 by Country",
+    dataSource: "Data source",
+    lastUpdated: "Last updated",
+    statCountries: "Countries",
+    statKw: "Branded KWs",
+    statOe: "OE Share (All Regions)",
+    period: "Period:",
+    to: "to",
+    allTime: "All Time",
+    includeDuolingo: "\ud83d\udc41 Include Duolingo",
+    excludeDuolingo: "\ud83d\udc41 Exclude Duolingo",
+    pieTitle: "Market Share by Keyword",
+    pieSub: "Selected period \u2014 percentage of total searches",
+    pctShare: "% Share",
+    barTitle: "Search Volume by Keyword",
+    barSub: "Selected period \u2014 exact monthly search volume",
+    exactSv: "Exact SV",
+    trendTitle: "Monthly Trend \u2014 Volume",
+    trendSub: "Absolute search volume \u00b7 hover for exact values",
+    trendPctTitle: "Monthly Trend \u2014 Share of Search",
+    trendPctSub: "% of total searches per month \u00b7 same groups as chart above",
+    footer: "Data source: Ahrefs Keywords Explorer \u00b7 Open English SEO Team",
+    partialNote: (m, d) => "\u26a0\ufe0f " + m + " is an in-progress month \u2014 partial data, updated through " + d + ".",
+    filterTop5: "Top 5", filterMid: "Mid (6\u201310)", filterOthers: "Others",
+    searchesPerMo: "searches/mo",
+    partialSuffix: " (partial)",
+    countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
+  },
+  es: {
+    eyebrow: "Inteligencia de B\u00fasqueda \u00b7 LATAM + USA",
+    title: "Participaci\u00f3n de B\u00fasquedas de Marca",
+    titleSuffix: "\u2014 por Pa\u00eds",
+    dataSource: "Fuente de datos",
+    lastUpdated: "\u00daltima actualizaci\u00f3n",
+    statCountries: "Pa\u00edses",
+    statKw: "Marcas Rastreadas",
+    statOe: "Share de OE (Todas las Regiones)",
+    period: "Per\u00edodo:",
+    to: "a",
+    allTime: "Todo el Tiempo",
+    includeDuolingo: "\ud83d\udc41 Incluir Duolingo",
+    excludeDuolingo: "\ud83d\udc41 Excluir Duolingo",
+    pieTitle: "Participaci\u00f3n de Mercado por Marca",
+    pieSub: "Per\u00edodo seleccionado \u2014 porcentaje del total de b\u00fasquedas",
+    pctShare: "% Share",
+    barTitle: "Volumen de B\u00fasqueda por Marca",
+    barSub: "Per\u00edodo seleccionado \u2014 volumen exacto de b\u00fasquedas mensuales",
+    exactSv: "SV Exacto",
+    trendTitle: "Tendencia Mensual \u2014 Volumen",
+    trendSub: "Volumen absoluto de b\u00fasquedas \u00b7 pasa el cursor para ver valores exactos",
+    trendPctTitle: "Tendencia Mensual \u2014 Share de B\u00fasqueda",
+    trendPctSub: "% del total de b\u00fasquedas por mes \u00b7 mismos grupos que el gr\u00e1fico de arriba",
+    footer: "Fuente de datos: Ahrefs Keywords Explorer \u00b7 Equipo SEO de Open English",
+    partialNote: (m, d) => "\u26a0\ufe0f " + m + " es un mes en curso \u2014 datos parciales, actualizados hasta el " + d + ".",
+    filterTop5: "Top 5", filterMid: "Medio (6\u201310)", filterOthers: "Otros",
+    searchesPerMo: "b\u00fasquedas/mes",
+    partialSuffix: " (parcial)",
+    countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
+  },
+  pt: {
+    eyebrow: "Intelig\u00eancia de Busca \u00b7 LATAM + EUA",
+    title: "Participa\u00e7\u00e3o de Buscas de Marca",
+    titleSuffix: "\u2014 por Pa\u00eds",
+    dataSource: "Fonte de dados",
+    lastUpdated: "\u00daltima atualiza\u00e7\u00e3o",
+    statCountries: "Pa\u00edses",
+    statKw: "Marcas Monitoradas",
+    statOe: "Share da OE (Todas as Regi\u00f5es)",
+    period: "Per\u00edodo:",
+    to: "a",
+    allTime: "Todo o Per\u00edodo",
+    includeDuolingo: "\ud83d\udc41 Incluir Duolingo",
+    excludeDuolingo: "\ud83d\udc41 Excluir Duolingo",
+    pieTitle: "Participa\u00e7\u00e3o de Mercado por Marca",
+    pieSub: "Per\u00edodo selecionado \u2014 percentual do total de buscas",
+    pctShare: "% Share",
+    barTitle: "Volume de Busca por Marca",
+    barSub: "Per\u00edodo selecionado \u2014 volume exato de buscas mensais",
+    exactSv: "SV Exato",
+    trendTitle: "Tend\u00eancia Mensal \u2014 Volume",
+    trendSub: "Volume absoluto de buscas \u00b7 passe o mouse para ver valores exatos",
+    trendPctTitle: "Tend\u00eancia Mensal \u2014 Share de Busca",
+    trendPctSub: "% do total de buscas por m\u00eas \u00b7 mesmos grupos do gr\u00e1fico acima",
+    footer: "Fonte de dados: Ahrefs Keywords Explorer \u00b7 Equipe de SEO da Open English",
+    partialNote: (m, d) => "\u26a0\ufe0f " + m + " \u00e9 um m\u00eas em andamento \u2014 dados parciais, atualizados at\u00e9 " + d + ".",
+    filterTop5: "Top 5", filterMid: "M\u00e9dio (6\u201310)", filterOthers: "Outros",
+    searchesPerMo: "buscas/m\u00eas",
+    partialSuffix: " (parcial)",
+    countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM" },
+  },
+};
+
+let currentLang = localStorage.getItem("oe_dashboard_lang") || "en";
+function t(key) { return I18N[currentLang][key]; }
+
+function applyStaticTranslations() {
+  document.getElementById("txt-eyebrow").textContent = t("eyebrow");
+  document.getElementById("txt-title").textContent = t("title");
+  document.getElementById("txt-titleSuffix").textContent = t("titleSuffix");
+  document.getElementById("txt-dataSource").textContent = t("dataSource");
+  document.getElementById("txt-lastUpdated").textContent = t("lastUpdated");
+  document.getElementById("txt-statCountries").textContent = t("statCountries");
+  document.getElementById("txt-statKw").textContent = t("statKw");
+  document.getElementById("txt-statOe").textContent = t("statOe");
+  document.getElementById("txt-period").textContent = t("period");
+  document.getElementById("txt-to").textContent = t("to");
+  document.getElementById("allTimeBtn").textContent = t("allTime");
+  document.getElementById("txt-pieTitle").textContent = t("pieTitle");
+  document.getElementById("txt-pieSub").textContent = t("pieSub");
+  document.getElementById("txt-pctShare1").textContent = t("pctShare");
+  document.getElementById("txt-pctShare2").textContent = t("pctShare");
+  document.getElementById("txt-barTitle").textContent = t("barTitle");
+  document.getElementById("txt-barSub").textContent = t("barSub");
+  document.getElementById("txt-exactSv").textContent = t("exactSv");
+  document.getElementById("txt-trendTitle").textContent = t("trendTitle");
+  document.getElementById("txt-trendSub").textContent = t("trendSub");
+  document.getElementById("txt-trendPctTitle").textContent = t("trendPctTitle");
+  document.getElementById("txt-trendPctSub").textContent = t("trendPctSub");
+  document.getElementById("txt-footer").textContent = t("footer");
+  document.querySelectorAll("#langSwitcher button").forEach(b => b.classList.toggle("active", b.dataset.lang === currentLang));
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("oe_dashboard_lang", lang);
+  applyStaticTranslations();
+  updateDuolingoToggleLabel();
+  relabelPeriodSelectors();
+  updatePartialNote();
+  buildTabs();
+  renderCountry();
+}
+
+function wireLangSwitcher() {
+  document.querySelectorAll("#langSwitcher button").forEach(btn => {
+    btn.addEventListener("click", () => setLanguage(btn.dataset.lang));
+  });
+}
 
 function realCountries() { return DASHBOARD.countries.filter(c => !c.isAggregate); }
 
@@ -340,8 +492,9 @@ function buildTabs() {
   DASHBOARD.countries.forEach(c => {
     const btn = document.createElement("button");
     btn.className = "tab-btn" + (c.id === activeCountryId ? " active" : "");
-    btn.innerHTML = '<span class="flag-icon">' + c.flag_svg + '</span>' + c.name;
-    btn.addEventListener("click", () => { activeCountryId = c.id; activeGroup = "Top 5"; renderCountry(); });
+    const label = t("countryNames")[c.name] || c.name;
+    btn.innerHTML = '<span class="flag-icon">' + c.flag_svg + '</span>' + label;
+    btn.addEventListener("click", () => { activeCountryId = c.id; activeGroup = "top5"; renderCountry(); });
     row.appendChild(btn);
   });
 }
@@ -358,11 +511,25 @@ function updatePartialNote() {
   const note = document.getElementById("partialNote");
   const isPartialSelected = DASHBOARD.partial_month_index != null && toIdx === DASHBOARD.partial_month_index;
   if (isPartialSelected && DASHBOARD.partial_as_of) {
-    note.textContent = "\u26a0\ufe0f " + DASHBOARD.months[toIdx] + " es un mes en curso — datos parciales, actualizados hasta el " + DASHBOARD.partial_as_of + ".";
+    note.textContent = t("partialNote")(DASHBOARD.months[toIdx], DASHBOARD.partial_as_of);
     note.style.display = "block";
   } else {
     note.style.display = "none";
   }
+}
+
+function monthOptionLabel(i, m) {
+  return (i === DASHBOARD.partial_month_index) ? m + t("partialSuffix") : m;
+}
+
+function relabelPeriodSelectors() {
+  const fromSel = document.getElementById("fromSelect");
+  const toSel = document.getElementById("toSelect");
+  DASHBOARD.months.forEach((m, i) => {
+    const label = monthOptionLabel(i, m);
+    if (fromSel.options[i]) fromSel.options[i].textContent = label;
+    if (toSel.options[i]) toSel.options[i].textContent = label;
+  });
 }
 
 function populatePeriodSelectors() {
@@ -370,7 +537,7 @@ function populatePeriodSelectors() {
   const toSel = document.getElementById("toSelect");
   fromSel.innerHTML = ""; toSel.innerHTML = "";
   DASHBOARD.months.forEach((m, i) => {
-    const label = (i === DASHBOARD.partial_month_index) ? m + " (parcial)" : m;
+    const label = monthOptionLabel(i, m);
     const o1 = document.createElement("option"); o1.value = i; o1.textContent = label; fromSel.appendChild(o1);
     const o2 = document.createElement("option"); o2.value = i; o2.textContent = label; toSel.appendChild(o2);
   });
@@ -399,7 +566,7 @@ function populatePeriodSelectors() {
 
 function updateDuolingoToggleLabel() {
   const btn = document.getElementById("duolingoToggle");
-  btn.textContent = includeDuolingo ? "\ud83d\udc41 Exclude Duolingo" : "\ud83d\udc41 Include Duolingo";
+  btn.textContent = includeDuolingo ? t("excludeDuolingo") : t("includeDuolingo");
 }
 
 function wireDuolingoToggle() {
@@ -458,14 +625,15 @@ function buildBar(kws) {
     type: "bar",
     data: { labels: barData.map(k=>cap(k.kw)), datasets:[{ label:"Current SV", data: barData.map(k=>currentValue(k)), backgroundColor: barData.map(k=>PAL[k.color_idx % PAL.length]+"CC"), borderColor: barData.map(k=>PAL[k.color_idx % PAL.length]), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
     options: { responsive:true, maintainAspectRatio:false, indexAxis:"y",
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.raw.toLocaleString()+" searches/mo" }, padding:10, cornerRadius:8 } },
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.raw.toLocaleString()+" "+t("searchesPerMo") }, padding:10, cornerRadius:8 } },
       scales: { x:{ grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>fmtNum(v)} }, y:{ grid:{display:false}, ticks:{font:{...bf,size:11}, color:"#334155"} } } }
   });
 }
 
 function buildFilterRow(kws) {
   const sorted = [...kws].sort((a,b)=>currentValue(b)-currentValue(a));
-  const groups = { "Top 5": sorted.slice(0,5), "Mid (6\u201310)": sorted.slice(5,10), "Others": sorted.slice(10) };
+  const groups = { top5: sorted.slice(0,5), mid: sorted.slice(5,10), others: sorted.slice(10) };
+  const labels = { top5: t("filterTop5"), mid: t("filterMid"), others: t("filterOthers") };
   window._trendGroups = groups;
   const row = document.getElementById("filterRow");
   row.innerHTML = "";
@@ -473,7 +641,7 @@ function buildFilterRow(kws) {
     if (groups[g].length === 0) return;
     const btn = document.createElement("button");
     btn.className = "filter-btn" + (g === activeGroup ? " active" : "");
-    btn.textContent = g;
+    btn.textContent = labels[g];
     btn.addEventListener("click", () => {
       activeGroup = g;
       document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
@@ -483,7 +651,7 @@ function buildFilterRow(kws) {
     });
     row.appendChild(btn);
   });
-  if (!groups[activeGroup] || groups[activeGroup].length === 0) activeGroup = "Top 5";
+  if (!groups[activeGroup] || groups[activeGroup].length === 0) activeGroup = "top5";
 }
 
 function buildTrend(kws) {
@@ -541,6 +709,8 @@ function buildTrendPct(kws) {
 function renderDashboard(data) {
   DASHBOARD = data;
   document.getElementById("lastUpdated").textContent = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  applyStaticTranslations();
+  wireLangSwitcher();
   setGlobalStats();
   populatePeriodSelectors();
   updateDuolingoToggleLabel();

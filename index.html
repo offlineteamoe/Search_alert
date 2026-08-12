@@ -334,6 +334,18 @@ async function fetchDashboardData(accessToken) {
   return response.json();
 }
 
+function showRenderCrash(err) {
+  const root = document.getElementById("dashboardRoot");
+  root.style.display = "block";
+  root.innerHTML =
+    '<div style="max-width:640px;margin:60px auto;padding:28px 32px;background:#fff;border:1px solid #FF6600;border-radius:12px;font-family:-apple-system,sans-serif;">' +
+    '<h2 style="color:#7a3300;font-size:16px;margin-bottom:10px;">No se pudo mostrar el tablero</h2>' +
+    '<p style="font-size:13px;color:#334155;margin-bottom:10px;">Ocurri\u00f3 un error al construir la p\u00e1gina. Comparte este mensaje con el equipo t\u00e9cnico:</p>' +
+    '<pre style="font-size:11px;color:#7a3300;background:#FFF0E8;padding:12px;border-radius:6px;white-space:pre-wrap;word-break:break-word;">' +
+    ((err && err.message) || String(err)) + "\n\n" + ((err && err.stack) || "") +
+    '</pre></div>';
+}
+
 async function onSignIn(accessToken, silent) {
   try {
     const data = await fetchDashboardData(accessToken);
@@ -341,9 +353,14 @@ async function onSignIn(accessToken, silent) {
     const loginScreen = document.getElementById("loginScreen");
     loginScreen.classList.add("fade-out");
     setTimeout(() => {
-      loginScreen.style.display = "none";
-      document.getElementById("dashboardRoot").style.display = "block";
-      renderDashboard(data);
+      try {
+        loginScreen.style.display = "none";
+        document.getElementById("dashboardRoot").style.display = "block";
+        renderDashboard(data);
+      } catch (renderErr) {
+        loginScreen.style.display = "none";
+        showRenderCrash(renderErr);
+      }
     }, 380);
   } catch (err) {
     clearCachedToken();

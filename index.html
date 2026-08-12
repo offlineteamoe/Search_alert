@@ -43,6 +43,7 @@ header h1 span { color:var(--orange); }
 .period-spacer { flex:1; }
 .toggle-btn { font-size:12px; font-weight:600; padding:7px 14px; border-radius:20px; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-700); cursor:pointer; }
 .toggle-btn:hover { border-color:var(--blue); color:var(--blue); }
+.toggle-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
 .tabs-row { max-width:1280px; margin:0 auto; display:flex; gap:8px; flex-wrap:wrap; padding:14px 48px; background:var(--gray-100); }
 .tab-btn { font-size:13px; font-weight:600; padding:8px 16px; border-radius:20px; border:1.5px solid var(--gray-200); background:var(--white); color:var(--gray-500); cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; }
 .tab-btn:hover { border-color:var(--blue); color:var(--blue); }
@@ -561,9 +562,25 @@ function updateSelectConstraints() {
   Array.from(toSel.options).forEach((opt, i) => { opt.disabled = i < fromIdx; });
 }
 
+function updateQuickRangeButtons() {
+  const dTo = defaultToIdx();
+  const presets = {
+    allTimeBtn: [0, dTo],
+    lastYearBtn: [Math.max(0, dTo - 12), dTo],
+    lastMonthBtn: [dTo, dTo],
+    currentPartialBtn: DASHBOARD.partial_month_index != null ? [DASHBOARD.partial_month_index, DASHBOARD.partial_month_index] : null,
+  };
+  Object.keys(presets).forEach(id => {
+    const preset = presets[id];
+    const isActive = !!preset && preset[0] === fromIdx && preset[1] === toIdx;
+    document.getElementById(id).classList.toggle("active", isActive);
+  });
+}
+
 function onRangeChanged() {
   updateSelectConstraints();
   updatePartialNote();
+  updateQuickRangeButtons();
   setGlobalStats();
   renderCountry();
 }
@@ -591,6 +608,7 @@ function populatePeriodSelectors() {
   fromSel.value = fromIdx; toSel.value = toIdx;
   updateSelectConstraints();
   updatePartialNote();
+  updateQuickRangeButtons();
   fromSel.onchange = () => {
     // Picking a "from" month always pushes "to" forward if needed — the
     // list of "to" options is also narrowed so this rarely has to kick in.

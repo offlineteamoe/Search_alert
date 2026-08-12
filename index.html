@@ -78,6 +78,21 @@ main { max-width:1280px; margin:0 auto; padding:24px 48px 60px; display:grid; ga
 .filter-btn { font-size:11px; font-weight:600; padding:5px 12px; border-radius:20px; border:1.5px solid var(--gray-200); background:var(--white); color:var(--gray-500); cursor:pointer; transition:all 0.15s; }
 .filter-btn:hover { border-color:var(--blue); color:var(--blue); }
 .filter-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+.group-others-row { display:flex; justify-content:flex-end; margin-bottom:-8px; }
+.switch-wrap { position:relative; display:inline-flex; align-items:center; gap:8px; }
+.switch-label { font-size:12px; font-weight:600; color:var(--gray-500); cursor:help; border-bottom:1px dashed var(--gray-200); }
+.switch { position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0; }
+.switch input { opacity:0; width:0; height:0; }
+.switch-slider { position:absolute; inset:0; background:var(--gray-200); transition:0.2s; border-radius:20px; cursor:pointer; }
+.switch-slider::before { position:absolute; content:""; height:16px; width:16px; left:2px; bottom:2px; background:#fff; transition:0.2s; border-radius:50%%; box-shadow:0 1px 2px rgba(0,0,0,0.25); }
+.switch input:checked + .switch-slider { background:var(--blue); }
+.switch input:checked + .switch-slider::before { transform:translateX(16px); }
+.others-tooltip { display:none; position:absolute; top:calc(100%% + 8px); right:0; z-index:20; background:#fff; border:1px solid var(--gray-200); box-shadow:0 10px 28px rgba(0,0,102,0.16); border-radius:10px; padding:14px 16px; font-size:12px; color:var(--gray-700); width:260px; max-height:280px; overflow-y:auto; text-align:left; }
+.switch-label:hover ~ .others-tooltip { display:block; }
+.others-tooltip .ot-row { font-weight:700; color:var(--gray-900); margin-bottom:4px; }
+.others-tooltip .ot-list { margin-top:8px; border-top:1px solid var(--gray-200); padding-top:8px; display:flex; flex-direction:column; gap:3px; }
+.others-tooltip .ot-item { display:flex; justify-content:space-between; gap:10px; }
+.others-tooltip .ot-hint { color:var(--gray-500); }
 footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48px 32px; max-width:1280px; margin:0 auto; }
 @media(max-width:900px) {
   header, main, footer, .tabs-row, .period-row { padding-left:20px; padding-right:20px; }
@@ -145,6 +160,16 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 <div class="partial-note" id="partialNote"></div>
 <div class="tabs-row" id="tabsRow"></div>
 <main>
+  <div class="group-others-row">
+    <label class="switch-wrap">
+      <span class="switch-label" id="txt-groupOthers">Group Others</span>
+      <span class="switch">
+        <input type="checkbox" id="groupOthersCheckbox">
+        <span class="switch-slider"></span>
+      </span>
+      <div class="others-tooltip" id="othersTooltip"></div>
+    </label>
+  </div>
   <div class="row-2">
     <div class="card">
       <div class="card-header">
@@ -322,6 +347,9 @@ let pieChart, barChart, trendChart, trendPctChart;
 let activeGroup = "top5";
 let fromIdx = 0, toIdx = 0;
 let includeDuolingo = false;
+let groupOthers = false;
+let currentGrouping = null;
+const OTHERS_COLOR = "#94A3B8";
 
 function fmtNum(n) {
   if (n >= 1000000) return (n/1000000).toFixed(1)+"M";
@@ -364,6 +392,12 @@ const I18N = {
     filterTop5: "Top 5", filterMid: "Mid (6\u201310)", filterOthers: "Others",
     searchesPerMo: "searches/mo",
     partialSuffix: " (partial)",
+    groupOthersLabel: "Group Others",
+    othersGroupLabel: "Others",
+    othersVisiblePct: "Visible independently",
+    othersGroupedPct: "Grouped into \u201cOthers\u201d",
+    othersHint: "Turn this on to group minor keywords into \u201cOthers\u201d once they add up to 80\u201390% of the total.",
+    othersNone: "Nothing to group \u2014 every keyword already stays above the 80% threshold on its own.",
     countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
   },
   es: {
@@ -398,6 +432,12 @@ const I18N = {
     filterTop5: "Top 5", filterMid: "Medio (6\u201310)", filterOthers: "Otros",
     searchesPerMo: "b\u00fasquedas/mes",
     partialSuffix: " (parcial)",
+    groupOthersLabel: "Agrupar Others",
+    othersGroupLabel: "Others",
+    othersVisiblePct: "Visible de forma independiente",
+    othersGroupedPct: "Agrupado en \u201cOthers\u201d",
+    othersHint: "Act\u00edvalo para agrupar las keywords menores en \u201cOthers\u201d una vez que sumen entre el 80% y el 90% del total.",
+    othersNone: "No hay nada que agrupar \u2014 cada keyword ya se mantiene por encima del umbral del 80% por s\u00ed sola.",
     countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
   },
   pt: {
@@ -432,6 +472,12 @@ const I18N = {
     filterTop5: "Top 5", filterMid: "M\u00e9dio (6\u201310)", filterOthers: "Outros",
     searchesPerMo: "buscas/m\u00eas",
     partialSuffix: " (parcial)",
+    groupOthersLabel: "Agrupar Others",
+    othersGroupLabel: "Others",
+    othersVisiblePct: "Vis\u00edvel de forma independente",
+    othersGroupedPct: "Agrupado em \u201cOthers\u201d",
+    othersHint: "Ative para agrupar as palavras-chave menores em \u201cOthers\u201d quando somarem entre 80% e 90% do total.",
+    othersNone: "Nada para agrupar \u2014 cada palavra-chave j\u00e1 se mant\u00e9m acima do limite de 80% por conta pr\u00f3pria.",
     countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM" },
   },
 };
@@ -474,6 +520,7 @@ function setLanguage(lang) {
   localStorage.setItem("oe_dashboard_lang", lang);
   applyStaticTranslations();
   updateDuolingoToggleLabel();
+  updateGroupOthersLabel();
   relabelPeriodSelectors();
   updatePartialNote();
   buildTabs();
@@ -661,23 +708,85 @@ function currentValue(k) {
   return count > 0 ? Math.round(sum / count) : (k.sv || 0);
 }
 
+function displayLabel(k) { return k.isOthersGroup ? t("othersGroupLabel") : cap(k.kw); }
+function colorFor(k) { return k.isOthersGroup ? OTHERS_COLOR : PAL[k.color_idx % PAL.length]; }
+
+// Sorts by current-period value descending, then walks the accumulated
+// share: everything up to (and including) the item that first pushes the
+// running total to >=80% stays independent; the rest — whatever tail is
+// left after that — is what "Group Others" folds into one slice/bar.
+function computeGrouping(kws) {
+  const filtered = kws.filter(k=>currentValue(k)>0).sort((a,b)=>currentValue(b)-currentValue(a));
+  const total = filtered.reduce((s,k)=>s+currentValue(k),0);
+  const withPct = filtered.map(k => ({ k, pct: total > 0 ? (currentValue(k)/total)*100 : 0 }));
+  let cumulative = 0;
+  const independent = [];
+  const othersItems = [];
+  withPct.forEach(item => {
+    if (cumulative < 80) { independent.push(item); cumulative += item.pct; }
+    else { othersItems.push(item); }
+  });
+  return { filtered, independent, othersItems };
+}
+
+function buildGroupedDisplayItems(grouping) {
+  if (grouping.othersItems.length === 0) return grouping.filtered;
+  const othersValue = grouping.othersItems.reduce((s,{k})=>s+currentValue(k),0);
+  const othersEntry = { kw: "__others__", isOthersGroup: true, sv: othersValue, m: [], color_idx: -1 };
+  return [...grouping.independent.map(item=>item.k), othersEntry];
+}
+
+function updateOthersTooltipContent() {
+  const tooltip = document.getElementById("othersTooltip");
+  const g = currentGrouping;
+  if (!tooltip || !g) return;
+  if (g.othersItems.length === 0) {
+    tooltip.innerHTML = '<div class="ot-hint">'+t("othersNone")+'</div>';
+    return;
+  }
+  const independentPct = g.independent.reduce((s,{pct})=>s+pct,0);
+  const othersPct = g.othersItems.reduce((s,{pct})=>s+pct,0);
+  let html = '<div class="ot-row">'+t("othersVisiblePct")+': '+independentPct.toFixed(1)+'%</div>';
+  html += '<div class="ot-row">'+t("othersGroupedPct")+': '+othersPct.toFixed(1)+'%</div>';
+  html += '<div class="ot-list">';
+  g.othersItems.forEach(({k, pct}) => {
+    html += '<div class="ot-item"><span>'+cap(k.kw)+'</span><span>'+pct.toFixed(1)+'%</span></div>';
+  });
+  html += '</div>';
+  tooltip.innerHTML = html;
+}
+
+function updateGroupOthersLabel() {
+  document.getElementById("txt-groupOthers").textContent = t("groupOthersLabel");
+}
+
+function wireGroupOthersToggle() {
+  document.getElementById("groupOthersCheckbox").onchange = (e) => {
+    groupOthers = e.target.checked;
+    renderCountry();
+  };
+}
+
 function renderCountry() {
   document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.toggle("active", DASHBOARD.countries[i].id === activeCountryId));
   const kws = visibleKeywords();
-  buildPie(kws);
-  buildBar(kws);
+  const grouping = computeGrouping(kws);
+  currentGrouping = grouping;
+  const displayItems = groupOthers ? buildGroupedDisplayItems(grouping) : grouping.filtered;
+  buildPie(displayItems);
+  buildBar(displayItems);
   buildFilterRow(kws);
   buildTrend(kws);
   buildTrendPct(kws);
+  updateOthersTooltipContent();
 }
 
-function buildPie(kws) {
-  const pieData = kws.filter(k=>currentValue(k)>0).sort((a,b)=>currentValue(b)-currentValue(a));
+function buildPie(pieData) {
   const pieTotal = pieData.reduce((s,k)=>s+currentValue(k),0);
   if (pieChart) pieChart.destroy();
   pieChart = new Chart(document.getElementById("pieChart"), {
     type: "doughnut",
-    data: { labels: pieData.map(k=>cap(k.kw)), datasets:[{ data: pieData.map(k=>currentValue(k)), backgroundColor: pieData.map(k=>PAL[k.color_idx % PAL.length]), borderWidth:2, borderColor:"#fff", hoverOffset:8 }] },
+    data: { labels: pieData.map(k=>displayLabel(k)), datasets:[{ data: pieData.map(k=>currentValue(k)), backgroundColor: pieData.map(k=>colorFor(k)), borderWidth:2, borderColor:"#fff", hoverOffset:8 }] },
     options: { responsive:true, maintainAspectRatio:false, cutout:"62%",
       plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.label+": "+((ctx.raw/pieTotal)*100).toFixed(1)+"%  ("+ctx.raw.toLocaleString()+")" }, padding:10, cornerRadius:8 } } }
   });
@@ -687,23 +796,23 @@ function buildPie(kws) {
     const pct = ((currentValue(k)/pieTotal)*100).toFixed(1);
     const el = document.createElement("div");
     el.className = "legend-item";
-    el.innerHTML = '<span class="legend-dot" style="background:'+PAL[k.color_idx % PAL.length]+'"></span><span class="legend-kw">'+cap(k.kw)+'</span><span class="legend-pct">'+pct+'%</span>';
+    el.innerHTML = '<span class="legend-dot" style="background:'+colorFor(k)+'"></span><span class="legend-kw">'+displayLabel(k)+'</span><span class="legend-pct">'+pct+'%</span>';
     legendEl.appendChild(el);
   });
 }
 
-function buildBar(kws) {
-  const barData = kws.filter(k=>currentValue(k)>0).sort((a,b)=>currentValue(b)-currentValue(a));
+function buildBar(barData) {
   // Fixed-height charts hide labels once there are enough bars (e.g. LATAM
   // aggregates 50+ keywords) — grow the wrapper to fit every bar+label
   // instead. The sibling "Market Share" card stretches to match via CSS
-  // grid's default row-stretch, so both cards stay bottom-aligned.
+  // grid's default row-stretch, so both cards stay bottom-aligned. Turning
+  // "Group Others" on shrinks barData.length, so this also shrinks back down.
   const wrap = document.getElementById("barChart").parentElement;
   wrap.style.height = Math.max(320, barData.length * 26 + 50) + "px";
   if (barChart) barChart.destroy();
   barChart = new Chart(document.getElementById("barChart"), {
     type: "bar",
-    data: { labels: barData.map(k=>cap(k.kw)), datasets:[{ label:"Current SV", data: barData.map(k=>currentValue(k)), backgroundColor: barData.map(k=>PAL[k.color_idx % PAL.length]+"CC"), borderColor: barData.map(k=>PAL[k.color_idx % PAL.length]), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
+    data: { labels: barData.map(k=>displayLabel(k)), datasets:[{ label:"Current SV", data: barData.map(k=>currentValue(k)), backgroundColor: barData.map(k=>colorFor(k)+"CC"), borderColor: barData.map(k=>colorFor(k)), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
     options: { responsive:true, maintainAspectRatio:false, indexAxis:"y",
       plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => "  "+ctx.raw.toLocaleString()+" "+t("searchesPerMo") }, padding:10, cornerRadius:8 } },
       scales: { x:{ grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{...bf,size:11}, color:"#64748B", callback:v=>fmtNum(v)} }, y:{ grid:{display:false}, ticks:{font:{...bf,size:11}, color:"#334155", autoSkip:false} } } }
@@ -795,6 +904,8 @@ function renderDashboard(data) {
   setGlobalStats();
   updateDuolingoToggleLabel();
   wireDuolingoToggle();
+  updateGroupOthersLabel();
+  wireGroupOthersToggle();
   activeCountryId = DASHBOARD.countries[0].id;
   buildTabs();
   renderCountry();

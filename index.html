@@ -81,6 +81,8 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 .login-card h1 span { color:var(--orange); }
 .login-card p { font-size:13px; color:var(--gray-500); margin-bottom:24px; }
 .error-box { background:#FFF0E8; border:1px solid var(--orange); color:#7a3300; border-radius:8px; padding:14px 16px; font-size:13px; margin-top:16px; text-align:left; display:none; }
+.request-access-btn { display:inline-block; margin-top:10px; background:var(--orange); color:#fff; text-decoration:none; font-weight:600; font-size:12px; padding:8px 14px; border-radius:6px; }
+.request-access-btn:hover { opacity:0.9; }
 .fade-out { animation: fadeOut 0.4s ease forwards; }
 @keyframes fadeOut { to { opacity:0; transform:scale(0.98); } }
 
@@ -165,20 +167,33 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 let DASHBOARD = null;
 const DRIVE_FILE_ID = "1dJnVQ9bbBXVN05SpVOL9ss-CT2muCJ1M";
 
-function showError(message) {
+function showError(message, offerRequestAccess) {
   const box = document.getElementById("errorBox");
-  box.textContent = message;
+  box.innerHTML = "";
+  const p = document.createElement("div");
+  p.textContent = message;
+  box.appendChild(p);
+  if (offerRequestAccess) {
+    const link = document.createElement("a");
+    link.href = "https://drive.google.com/file/d/" + DRIVE_FILE_ID + "/view?usp=sharing";
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.className = "request-access-btn";
+    link.textContent = "Solicitar acceso a Google Drive";
+    box.appendChild(link);
+  }
   box.style.display = "block";
 }
 
 async function fetchDashboardData(accessToken) {
   const url = "https://www.googleapis.com/drive/v3/files/" + DRIVE_FILE_ID + "?alt=media&supportsAllDrives=true";
   const response = await fetch(url, { headers: { Authorization: "Bearer " + accessToken } });
-  if (response.status === 403) {
-    throw new Error("403");
-  }
   if (!response.ok) {
-    throw new Error("HTTP " + response.status);
+    const bodyText = await response.text();
+    const err = new Error("HTTP " + response.status);
+    err.status = response.status;
+    err.body = bodyText;
+    throw err;
   }
   return response.json();
 }
@@ -194,10 +209,12 @@ async function onSignIn(accessToken) {
       renderDashboard(data);
     }, 380);
   } catch (err) {
-    if (err.message === "403") {
-      showError("No tienes permisos para ver esta informaci\u00f3n. Solicita acceso a la carpeta compartida del equipo de Marketing.");
+    let detail = err.body || err.message;
+    try { detail = JSON.parse(err.body).error.message; } catch (e) {}
+    if (err.status === 403) {
+      showError("No tienes permisos para ver este archivo (403: " + detail + "). Puedes solicitar acceso directamente:", true);
     } else {
-      showError("No se pudo cargar la informaci\u00f3n (" + err.message + "). Intenta de nuevo.");
+      showError("Error " + (err.status || "") + ": " + detail, false);
     }
   }
 }

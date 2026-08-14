@@ -461,7 +461,7 @@ const I18N = {
     trendPctTitle: "Monthly Trend \u2014 Share of Search",
     trendPctSub: "% of total searches per month \u00b7 same groups as chart above",
     footer: "Data source: Ahrefs Keywords Explorer \u00b7 Open English SEO Team",
-    partialNote: (m, d) => "\u26a0\ufe0f " + m + " is an in-progress month \u2014 partial data, updated through " + d + ".",
+    partialNote: (m) => "\u26a0\ufe0f " + m + " is still in progress. Each keyword refreshes on its own schedule \u2014 some numbers already reflect the last few days, others may lag a bit \u2014 so treat this month as provisional until it closes.",
     filterTop5: "Top 5", filterMid: "Mid (6\u201310)", filterOthers: "Others",
     searchesPerMo: "searches/mo",
     partialSuffix: " (partial)",
@@ -503,7 +503,7 @@ const I18N = {
     trendPctTitle: "Tendencia Mensual \u2014 Share de B\u00fasqueda",
     trendPctSub: "% del total de b\u00fasquedas por mes \u00b7 mismos grupos que el gr\u00e1fico de arriba",
     footer: "Fuente de datos: Ahrefs Keywords Explorer \u00b7 Equipo SEO de Open English",
-    partialNote: (m, d) => "\u26a0\ufe0f " + m + " es un mes en curso \u2014 datos parciales, actualizados hasta el " + d + ".",
+    partialNote: (m) => "\u26a0\ufe0f " + m + " es un mes en curso. Cada keyword se actualiza en su propio momento \u2014 algunos n\u00fameros ya reflejan los \u00faltimos d\u00edas, otros pueden estar un poco atrasados \u2014 as\u00ed que trata este mes como provisional hasta que cierre.",
     filterTop5: "Top 5", filterMid: "Medio (6\u201310)", filterOthers: "Otros",
     searchesPerMo: "b\u00fasquedas/mes",
     partialSuffix: " (parcial)",
@@ -545,7 +545,7 @@ const I18N = {
     trendPctTitle: "Tend\u00eancia Mensal \u2014 Share de Busca",
     trendPctSub: "% do total de buscas por m\u00eas \u00b7 mesmos grupos do gr\u00e1fico acima",
     footer: "Fonte de dados: Ahrefs Keywords Explorer \u00b7 Equipe de SEO da Open English",
-    partialNote: (m, d) => "\u26a0\ufe0f " + m + " \u00e9 um m\u00eas em andamento \u2014 dados parciais, atualizados at\u00e9 " + d + ".",
+    partialNote: (m) => "\u26a0\ufe0f " + m + " \u00e9 um m\u00eas em andamento. Cada palavra-chave \u00e9 atualizada no seu pr\u00f3prio ritmo \u2014 alguns n\u00fameros j\u00e1 refletem os \u00faltimos dias, outros podem estar um pouco atrasados \u2014 trate este m\u00eas como provis\u00f3rio at\u00e9 ele fechar.",
     filterTop5: "Top 5", filterMid: "M\u00e9dio (6\u201310)", filterOthers: "Outros",
     searchesPerMo: "buscas/m\u00eas",
     partialSuffix: " (parcial)",
@@ -675,7 +675,7 @@ function updatePartialNote() {
   const note = document.getElementById("partialNote");
   const isPartialSelected = DASHBOARD.partial_month_index != null && toIdx === DASHBOARD.partial_month_index;
   if (isPartialSelected && DASHBOARD.partial_as_of) {
-    note.textContent = t("partialNote")(DASHBOARD.months[toIdx], DASHBOARD.partial_as_of);
+    note.textContent = t("partialNote")(DASHBOARD.months[toIdx]);
     note.style.display = "block";
   } else {
     note.style.display = "none";

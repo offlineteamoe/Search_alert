@@ -1004,7 +1004,11 @@ function buildTrendPct(kws) {
 
 function renderDashboard(data) {
   DASHBOARD = data;
-  document.getElementById("lastUpdated").textContent = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  // Show the real build timestamp (when the pipeline last ran), not
+  // new Date() — that used to silently show "today" for whoever was
+  // viewing the page, regardless of how stale the underlying data was.
+  const generatedAt = data.generated_at ? new Date(data.generated_at) : new Date();
+  document.getElementById("lastUpdated").textContent = generatedAt.toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});
   applyStaticTranslations();
   wireLangSwitcher();
   populatePeriodSelectors();

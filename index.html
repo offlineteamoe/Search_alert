@@ -93,6 +93,7 @@ header h1 span { color:var(--orange); }
 .lens-kpi + .lens-kpi { border-left:1px solid var(--gray-200); padding-left:20px; }
 .lens-kpi-label { font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--gray-500); display:flex; align-items:center; gap:6px; }
 .lens-kpi-val { font-size:30px; font-weight:700; color:var(--gray-700); margin-top:8px; font-variant-numeric:tabular-nums; line-height:1.1; }
+.lens-kpi-total { margin-top:6px; padding-top:6px; border-top:1px dashed var(--gray-200); font-size:11px; font-weight:600; color:var(--gray-700); }
 .lens-kpi-sub { font-size:11px; color:var(--gray-500); margin-top:5px; overflow-wrap:anywhere; }
 .lens-dot { width:10px; height:10px; border-radius:50%; flex:none; display:inline-block; }
 .lens-drill-btn { font-size:12px; font-weight:600; padding:8px 14px; border-radius:8px; border:1px solid var(--gray-200); background:var(--white); color:var(--blue); cursor:pointer; }
@@ -561,6 +562,9 @@ const I18N = {
     lensViewNames: { brand:"Brand only", url:"By URL", clean:"How much they really get" },
     lensUnitSearches: "searches", lensUnitTraffic: "visits",
     lensVsPrev: "vs previous period:",
+    lensAvgTag: (n) => "monthly average of " + n + " months",
+    lensSingleMonth: "this month",
+    lensTotalLabel: (n) => "Total for the " + n + " months:",
     lensScope: (range, n, unit) => n === 1 ? (range + " · " + unit) : ("Monthly avg " + range + " (" + n + " months) · " + unit),
     lensPeriodNote: "",
     lensModeSplit: "By keyword", lensModeGrouped: "Whole brand",
@@ -633,6 +637,9 @@ const I18N = {
     lensViewNames: { brand:"Marca pura", url:"Por URL", clean:"Cuánto se llevan de verdad" },
     lensUnitSearches: "búsquedas", lensUnitTraffic: "visitas",
     lensVsPrev: "vs periodo anterior:",
+    lensAvgTag: (n) => "promedio mensual de " + n + " meses",
+    lensSingleMonth: "el mes",
+    lensTotalLabel: (n) => "Total de los " + n + " meses:",
     lensScope: (range, n, unit) => n === 1 ? (range + " · " + unit) : ("Promedio mensual " + range + " (" + n + " meses) · " + unit),
     lensPeriodNote: "",
     lensModeSplit: "Por keyword", lensModeGrouped: "Marca completa",
@@ -705,6 +712,9 @@ const I18N = {
     lensViewNames: { brand:"Só a marca", url:"Por URL", clean:"Quanto realmente levam" },
     lensUnitSearches: "buscas", lensUnitTraffic: "visitas",
     lensVsPrev: "vs período anterior:",
+    lensAvgTag: (n) => "média mensal de " + n + " meses",
+    lensSingleMonth: "o mês",
+    lensTotalLabel: (n) => "Total dos " + n + " meses:",
     lensScope: (range, n, unit) => n === 1 ? (range + " · " + unit) : ("Média mensal " + range + " (" + n + " meses) · " + unit),
     lensPeriodNote: "",
     lensModeSplit: "Por keyword", lensModeGrouped: "Marca completa",
@@ -1168,6 +1178,19 @@ function lensRankedTerms(brandKw) {
   const b = lensBrand(brandKw);
   return b ? (b.breakdown || []).slice().sort((x, y) => currentValue(y) - currentValue(x)) : [];
 }
+function nMonths() { return toIdx - fromIdx + 1; }
+function periodTotal(series) { return sliceRange(series).reduce((a, b) => a + b, 0); }
+// Every headline number on this dashboard is a MONTHLY AVERAGE over the
+// selected range, never a period total. Spelling that out on the tile
+// itself: read as a total, "22,397 for the year" next to "20,832 for July"
+// looks impossible, when in fact they are the same unit.
+function avgTag() { return nMonths() === 1 ? t("lensSingleMonth") : t("lensAvgTag")(nMonths()); }
+function totalLine(series) {
+  return nMonths() === 1 ? "" :
+    '<div class="lens-kpi-total">' + t("lensTotalLabel")(nMonths()) + " " +
+    periodTotal(series).toLocaleString() + '</div>';
+}
+
 function periodAvg(series) {
   const v = sliceRange(series);
   return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : 0;
@@ -1277,7 +1300,8 @@ function renderLensBrandView(host) {
   const bTot = brands.map(lensBrand).filter(Boolean);
   let html = introCard(t("lensBrandIntroTitle"), t("lensBrandIntroBody")) +
     kpiCard(bTot.map(b => kpi(cap(b.kw), currentValue(b).toLocaleString(),
-      t("lensVsPrev") + " " + deltaHtml(b), PAL[b.color_idx % PAL.length]))) +
+      avgTag() + " · " + t("lensVsPrev") + " " + deltaHtml(b) + totalLine(b.m),
+      PAL[b.color_idx % PAL.length]))) +
     toolbar('<div class="lens-mode-switch" id="lensModeSwitch"></div>' +
       (detailed ? '<label class="lens-topn">' + t("lensTopNLabel") +
         '<select id="lensTopN">' + [3, 5, 8, 100].map(n =>
@@ -1375,7 +1399,8 @@ function renderLensUrlView(host, view) {
     introCard(t("lensUrlIntroTitle"), t("lensUrlIntroBody")(parts[0].url, parts[1].url)) +
     toolbar('<div class="lens-period-badge">' + rangeLabel() + '</div>' +
             '<div class="lens-hint">' + scopeLine("lensUnitTraffic") + '</div>') +
-    kpiCard(parts.map(p => kpi(cap(p.kw), fmtNum(p.val), p.url, lensBrandColor(p.kw)))
+    kpiCard(parts.map(p => kpi(cap(p.kw), p.val.toLocaleString(),
+      p.url + " · " + avgTag() + totalLine(p.b.m), lensBrandColor(p.kw)))
       .concat([kpi(t("lensUrlRatioLabel"),
                    ratio ? (ratio >= 1 ? ratio.toFixed(1) + "×" : ratio.toFixed(2) + "×") : "—",
                    t("lensUrlRatioSub"))])) +
@@ -1424,7 +1449,8 @@ function renderLensCleanView(host, view) {
             '<div class="lens-hint">' + scopeLine("lensUnitSearches") + '</div>') +
     kpiCard(rows.map(r => kpi(t("lensRoutingKpiLabel")('"' + r.b.kw + '"'),
                               r.rate.toFixed(1) + "%",
-                              t("lensRoutingKpiSub")(r.cap.toLocaleString(), r.vol.toLocaleString(), r.domain),
+                              t("lensRoutingKpiSub")(r.cap.toLocaleString(), r.vol.toLocaleString(), r.domain) +
+                              '<div class="lens-kpi-total">' + avgTag() + '</div>',
                               PAL[r.b.color_idx % PAL.length]))) +
     card(t("lensRoutingTitle"), scopeLine("lensUnitSearches"), chartBox("lensRoutingBar", 200)) +
     card(t("lensCapTrendTitle"), t("lensCapTrendSub"), chartBox("lensCapTrend", 340));

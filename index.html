@@ -234,16 +234,8 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 <div class="tabs-row subtabs-row" id="subTabsRow" style="display:none;"></div>
 <div class="lens-note" id="lensNote" style="display:none;"></div>
 <main>
-  <div class="lens-controls" id="lensControls" style="display:none;">
-    <div class="lens-mode-switch" id="lensModeSwitch"></div>
-    <div class="lens-hint" id="lensHint"></div>
-  </div>
-  <div class="card lens-card" id="lensRankCard" style="display:none;">
-    <div class="card-header">
-      <div><div class="card-title" id="lensRankTitle"></div><div class="card-subtitle" id="lensRankSub"></div></div>
-    </div>
-    <div class="lens-rank-wrap" id="lensRankBody"></div>
-  </div>
+<div id="lensMain" style="display:none;"></div>
+<div id="genericMain">
   <div class="group-others-row">
     <div class="group-others-control">
       <span class="others-info" id="othersInfoWrap">
@@ -289,6 +281,7 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
     </div>
     <div class="chart-wrap chart-wrap-trend"><canvas id="trendPctChart"></canvas></div>
   </div>
+</div>
 </main>
 <div class="lens-modal-backdrop" id="lensModal" style="display:none;">
   <div class="lens-modal" role="dialog" aria-modal="true" aria-labelledby="lensModalTitle">
@@ -499,6 +492,7 @@ let activeCountryId = null;
 let activeSubTabId = null;
 let lensMode = "grouped";
 let lensIncludeStudents = false;
+let lensTopN = 5;
 let pieChart, barChart, trendChart, trendPctChart;
 let activeGroup = "top5";
 let fromIdx = 0, toIdx = 0;
@@ -567,6 +561,46 @@ const I18N = {
     lensMembersTitle: (n) => "See the " + n + " keywords behind these two lines",
     lensModeGrouped: "Grouped by brand", lensModeSplit: "Split by keyword",
     lensUrlHomeOnly: "Home only", lensUrlWithStudents: "+ student login",
+    lensTopNLabel: "Show", lensTopNAll: "All", lensRestLabel: (n) => "Other " + n,
+    lensUrlNote: "Organic search traffic only — Ahrefs estimates it from ranking position, so no ads, no direct, no email, no social. One URL per brand: the official home page. Student login pages are excluded on both sides.",
+    lensUrlRatioLabel: "Home gap", lensUrlRatioSub: "Open English vs Smart, official home page",
+    lensUrlTrendTitle: "Monthly organic traffic — official home page",
+    lensUrlTrendSub: "Estimated visits, Colombia · these are visits, not searches",
+    lensUrlBarTitle: "Home page vs home page", lensUrlBarSub: "Avg monthly organic visits in the selected period",
+    lensCleanWarn: "“Smart” cannot be cleaned by subtraction: Ahrefs gives one volume per keyword with no intent split inside it, and “smart fit” or “jet smart” are separate keywords never counted inside it. What IS measurable is where the searches actually land — which page receives them.",
+    lensRoutingKpiLabel: (term) => term + " → its own site",
+    lensRoutingKpiSub: (h, v, u) => h + " of " + v + " searches/mo land on " + u,
+    lensRoutingTitle: "Where each term's searches actually land",
+    lensRoutingSub: (d) => "Traffic each page receives from that one keyword · Ahrefs, Colombia, " + d,
+    lensRoutingSite: "Lands on the brand's own site", lensRoutingElsewhere: "Third parties", lensRoutingWhere: "Which page",
+    lensMethodBtn: "How this is calculated",
+    lensMethodTitle: "Methodology", lensMethodSub: (d) => "Measured " + d + " · Ahrefs, Colombia",
+    lensMethodBody: "Ahrefs reports one search volume per keyword and never splits intent inside it, so the 47K on “smart” mixes the academy with Smart Fit, JetSmart, smart TVs and SMART goals. Subtracting other keywords fixes nothing: “smart fit” is a different keyword that was never inside those 47K.<br><br>What is measurable is the traffic a <b>specific URL</b> receives <b>from a specific keyword</b>. Run per page, it shows where the demand lands. The result: Open English’s home page captures 32% of its own brand term, while Smart’s home page captures <b>none</b> of “smart” — it does not rank for it. The page that ranks #1 is its student login, used by people who are already customers.<br><br>Conclusion: Smart’s real brand demand is the name basket in <b>Brand only</b> (~4.6K/mo), not the 47K head term.",
+    lensTermsTitle: (b) => b + " — its terms",
+    lensTermsSub: "Avg monthly searches in the selected period",
+    lensEvoTitle: (b) => b + " — monthly trend by term",
+    lensEvoSub: "One line per term · the tail is folded into a single dashed line",
+    lensBrandCompareTitle: "Brand vs brand",
+    lensShareTitle: "Share between the two", lensShareSub: "% of the two brands combined",
+    lensBrandEvoTitle: "Monthly trend — full brand",
+    lensUrlRatioLabel: "Home gap", lensUrlRatioSub: "Open English vs Smart, home page",
+    lensUrlTrendTitle: "Monthly organic traffic per URL",
+    lensUrlTrendSub: "Estimated visits, Colombia · not searches",
+    lensUrlMixTitle: "What each brand's traffic is made of",
+    lensUrlMixSub: "Home page vs student login, stacked month by month",
+    lensCleanWarn: "“Smart” cannot be cleaned by subtraction. Ahrefs gives one volume per keyword with no intent split inside it, and “smart fit” or “jet smart” are separate keywords that were never counted inside “smart”. What IS measurable is how much of each term lands on the brand's own site.",
+    lensCapTitle: "How much of the term each brand actually captures",
+    lensCapSub: (d) => "Monthly searches for the term vs traffic its own site receives from it · Ahrefs snapshot " + d,
+    lensCapCaptured: "Captured by the brand", lensCapLost: "Goes elsewhere",
+    lensCapKpiSub: (c, v) => c + " of " + v + " searches/mo",
+    lensCleanNoiseLabel: "Ambiguity around it", lensCleanNoiseSub: (n) => n + " “smart” terms that are not the academy",
+    lensCleanTrendTitle: "Monthly trend — one keyword each",
+    lensCleanTrendSub: "“smart” against “open english”, nothing added",
+    lensCleanNoiseTitle: "What “smart” shares its name with in Colombia",
+    lensCleanNoiseCardSub: (tot) => "Separate keywords, not part of “smart”'s volume — they add up to " + tot + " searches/mo and explain why the bare term is unreliable on its own.",
+    lensCleanAcademyTag: "the term itself",
+    lensExcludedModalTitle: "“Smart” terms that are not the academy",
+    lensExcludedModalSub: (n, tot) => n + " separate keywords · " + tot + " searches/mo · context, not a subtraction",
     lensHintHomeOnly: "Official landing page only — nothing after the .com / .co. The comparable page.",
     lensHintWithStudents: "Adds the student login page to BOTH brands. Smart's is ~45K visits/mo of people who are already customers.",
     lensHintSingle: "One keyword per side: the bare “smart” against “open english”.",
@@ -639,6 +673,46 @@ const I18N = {
     lensHintSplit: "Cada keyword en su propia línea, matizada dentro del color de su marca.",
     lensRankTitle: "Qué keyword trae más",
     lensUrlHomeOnly: "Solo home", lensUrlWithStudents: "+ login de alumnos",
+    lensTopNLabel: "Ver", lensTopNAll: "Todos", lensRestLabel: (n) => "Otros " + n,
+    lensUrlNote: "Solo tráfico orgánico — Ahrefs lo estima desde la posición en el SERP, así que no incluye ads, ni directo, ni email, ni social. Una URL por marca: la home oficial. Las páginas de login de alumnos quedan fuera en ambos lados.",
+    lensUrlRatioLabel: "Brecha en home", lensUrlRatioSub: "Open English vs Smart, home oficial",
+    lensUrlTrendTitle: "Tráfico orgánico mensual — home oficial",
+    lensUrlTrendSub: "Visitas estimadas, Colombia · son visitas, no búsquedas",
+    lensUrlBarTitle: "Home contra home", lensUrlBarSub: "Visitas orgánicas mensuales promedio del periodo",
+    lensCleanWarn: "“Smart” no se puede limpiar restando: Ahrefs entrega un solo volumen por keyword y no desglosa la intención dentro de él, y “smart fit” o “jet smart” son keywords aparte que nunca estuvieron sumadas ahí dentro. Lo que SÍ se puede medir es dónde aterrizan las búsquedas — qué página las recibe.",
+    lensRoutingKpiLabel: (term) => term + " → su sitio",
+    lensRoutingKpiSub: (h, v, u) => h + " de " + v + " búsquedas/mes llegan a " + u,
+    lensRoutingTitle: "Dónde aterrizan realmente las búsquedas de cada término",
+    lensRoutingSub: (d) => "Tráfico que cada página recibe desde esa keyword · Ahrefs, Colombia, " + d,
+    lensRoutingSite: "Aterriza en el sitio de la marca", lensRoutingElsewhere: "Terceros", lensRoutingWhere: "Qué página",
+    lensMethodBtn: "Cómo se calcula esto",
+    lensMethodTitle: "Metodología", lensMethodSub: (d) => "Medido el " + d + " · Ahrefs, Colombia",
+    lensMethodBody: "Ahrefs reporta un solo volumen por keyword y nunca desglosa la intención dentro de él, así que los 47K de “smart” mezclan la academia con Smart Fit, JetSmart, televisores y la metodología SMART. Restar otras keywords no arregla nada: “smart fit” es una keyword distinta que nunca estuvo dentro de esos 47K.<br><br>Lo que sí es medible es el tráfico que una <b>URL específica</b> recibe <b>desde una keyword específica</b>. Corrido página por página, muestra dónde aterriza la demanda. El resultado: la home de Open English capta el 32% de su propio término de marca, mientras que la home de Smart no capta <b>nada</b> de “smart” — no rankea para esa palabra. La página que está en el puesto #1 es su login de alumnos, gente que ya es cliente.<br><br>Conclusión: la demanda de marca real de Smart es la canasta de nombre de <b>Marca pura</b> (~4,6K/mes), no el término de 47K.",
+    lensTermsTitle: (b) => b + " — sus términos",
+    lensTermsSub: "Búsquedas mensuales promedio del periodo",
+    lensEvoTitle: (b) => b + " — evolución mensual por término",
+    lensEvoSub: "Una línea por término · la cola se agrupa en una sola línea punteada",
+    lensBrandCompareTitle: "Marca contra marca",
+    lensShareTitle: "Reparto entre las dos", lensShareSub: "% del total de ambas marcas",
+    lensBrandEvoTitle: "Evolución mensual — marca completa",
+    lensUrlRatioLabel: "Brecha en home", lensUrlRatioSub: "Open English vs Smart, página principal",
+    lensUrlTrendTitle: "Tráfico orgánico mensual por URL",
+    lensUrlTrendSub: "Visitas estimadas, Colombia · no son búsquedas",
+    lensUrlMixTitle: "De qué está hecho el tráfico de cada marca",
+    lensUrlMixSub: "Home vs login de alumnos, apilado mes a mes",
+    lensCleanWarn: "“Smart” no se puede limpiar restando. Ahrefs entrega un solo volumen por keyword y no desglosa la intención dentro de él; “smart fit” o “jet smart” son keywords aparte que nunca estuvieron sumadas dentro de “smart”. Lo que SÍ se puede medir es cuánto de cada término aterriza en el sitio de cada marca.",
+    lensCapTitle: "Cuánto del término captura realmente cada marca",
+    lensCapSub: (d) => "Búsquedas mensuales del término vs tráfico que su propio sitio recibe de él · foto de Ahrefs " + d,
+    lensCapCaptured: "Lo captura la marca", lensCapLost: "Se va a otra parte",
+    lensCapKpiSub: (c, v) => c + " de " + v + " búsquedas/mes",
+    lensCleanNoiseLabel: "Ambigüedad alrededor", lensCleanNoiseSub: (n) => n + " términos “smart” que no son la academia",
+    lensCleanTrendTitle: "Evolución mensual — una keyword por lado",
+    lensCleanTrendSub: "“smart” contra “open english”, sin sumar nada",
+    lensCleanNoiseTitle: "Con qué comparte nombre “smart” en Colombia",
+    lensCleanNoiseCardSub: (tot) => "Son keywords aparte, no forman parte del volumen de “smart” — suman " + tot + " búsquedas/mes y explican por qué el término suelto no es confiable por sí solo.",
+    lensCleanAcademyTag: "el término en sí",
+    lensExcludedModalTitle: "Términos “smart” que no son la academia",
+    lensExcludedModalSub: (n, tot) => n + " keywords aparte · " + tot + " búsquedas/mes · contexto, no una resta",
     lensHintHomeOnly: "Solo la landing oficial — nada después del .com / .co. La página comparable.",
     lensHintWithStudents: "Suma el login de alumnos a AMBAS marcas. El de Smart son ~45K visitas/mes de gente que ya es cliente.",
     lensHintSingle: "Una keyword por lado: el término suelto “smart” contra “open english”.",
@@ -708,6 +782,46 @@ const I18N = {
     lensHintSplit: "Cada keyword em sua própria linha, matizada dentro da cor da sua marca.",
     lensRankTitle: "Qual keyword traz mais",
     lensUrlHomeOnly: "Só home", lensUrlWithStudents: "+ login de alunos",
+    lensTopNLabel: "Ver", lensTopNAll: "Todos", lensRestLabel: (n) => "Outros " + n,
+    lensUrlNote: "Apenas tráfego orgânico — a Ahrefs estima pela posição no SERP, então não inclui ads, direto, email nem social. Uma URL por marca: a home oficial. As páginas de login de alunos ficam de fora dos dois lados.",
+    lensUrlRatioLabel: "Diferença na home", lensUrlRatioSub: "Open English vs Smart, home oficial",
+    lensUrlTrendTitle: "Tráfego orgânico mensal — home oficial",
+    lensUrlTrendSub: "Visitas estimadas, Colômbia · são visitas, não buscas",
+    lensUrlBarTitle: "Home contra home", lensUrlBarSub: "Visitas orgânicas mensais médias do período",
+    lensCleanWarn: "“Smart” não pode ser limpo por subtração: a Ahrefs entrega um único volume por keyword sem separar a intenção dentro dele, e “smart fit” ou “jet smart” são keywords à parte que nunca estiveram somadas ali. O que DÁ para medir é onde as buscas realmente caem — qual página as recebe.",
+    lensRoutingKpiLabel: (term) => term + " → seu site",
+    lensRoutingKpiSub: (h, v, u) => h + " de " + v + " buscas/mês chegam a " + u,
+    lensRoutingTitle: "Onde as buscas de cada termo realmente caem",
+    lensRoutingSub: (d) => "Tráfego que cada página recebe daquela keyword · Ahrefs, Colômbia, " + d,
+    lensRoutingSite: "Cai no site da marca", lensRoutingElsewhere: "Terceiros", lensRoutingWhere: "Qual página",
+    lensMethodBtn: "Como isso é calculado",
+    lensMethodTitle: "Metodologia", lensMethodSub: (d) => "Medido em " + d + " · Ahrefs, Colômbia",
+    lensMethodBody: "A Ahrefs reporta um único volume por keyword e nunca separa a intenção dentro dele, então os 47K de “smart” misturam a academia com Smart Fit, JetSmart, televisores e a metodologia SMART. Subtrair outras keywords não resolve nada: “smart fit” é outra keyword que nunca esteve dentro desses 47K.<br><br>O que é mensurável é o tráfego que uma <b>URL específica</b> recebe <b>de uma keyword específica</b>. Rodado página por página, mostra onde a demanda cai. O resultado: a home da Open English captura 32% do seu próprio termo de marca, enquanto a home da Smart não captura <b>nada</b> de “smart” — ela não rankeia para essa palavra. A página em #1 é o login de alunos, gente que já é cliente.<br><br>Conclusão: a demanda de marca real da Smart é a cesta de nomes de <b>Só a marca</b> (~4,6K/mês), não o termo de 47K.",
+    lensTermsTitle: (b) => b + " — seus termos",
+    lensTermsSub: "Buscas mensais médias do período",
+    lensEvoTitle: (b) => b + " — evolução mensal por termo",
+    lensEvoSub: "Uma linha por termo · a cauda vira uma única linha tracejada",
+    lensBrandCompareTitle: "Marca contra marca",
+    lensShareTitle: "Divisão entre as duas", lensShareSub: "% do total das duas marcas",
+    lensBrandEvoTitle: "Evolução mensal — marca completa",
+    lensUrlRatioLabel: "Diferença na home", lensUrlRatioSub: "Open English vs Smart, página principal",
+    lensUrlTrendTitle: "Tráfego orgânico mensal por URL",
+    lensUrlTrendSub: "Visitas estimadas, Colômbia · não são buscas",
+    lensUrlMixTitle: "Do que é feito o tráfego de cada marca",
+    lensUrlMixSub: "Home vs login de alunos, empilhado mês a mês",
+    lensCleanWarn: "“Smart” não pode ser limpo por subtração. A Ahrefs entrega um único volume por keyword e não separa a intenção dentro dele; “smart fit” ou “jet smart” são keywords à parte que nunca estiveram somadas dentro de “smart”. O que DÁ para medir é quanto de cada termo cai no site de cada marca.",
+    lensCapTitle: "Quanto do termo cada marca realmente captura",
+    lensCapSub: (d) => "Buscas mensais do termo vs tráfego que o próprio site recebe dele · foto da Ahrefs " + d,
+    lensCapCaptured: "Capturado pela marca", lensCapLost: "Vai para outro lugar",
+    lensCapKpiSub: (c, v) => c + " de " + v + " buscas/mês",
+    lensCleanNoiseLabel: "Ambiguidade em volta", lensCleanNoiseSub: (n) => n + " termos “smart” que não são a academia",
+    lensCleanTrendTitle: "Evolução mensal — uma keyword por lado",
+    lensCleanTrendSub: "“smart” contra “open english”, sem somar nada",
+    lensCleanNoiseTitle: "Com o que “smart” divide o nome na Colômbia",
+    lensCleanNoiseCardSub: (tot) => "São keywords à parte, não fazem parte do volume de “smart” — somam " + tot + " buscas/mês e explicam por que o termo solto não é confiável sozinho.",
+    lensCleanAcademyTag: "o termo em si",
+    lensExcludedModalTitle: "Termos “smart” que não são a academia",
+    lensExcludedModalSub: (n, tot) => n + " keywords à parte · " + tot + " buscas/mês · contexto, não uma subtração",
     lensHintHomeOnly: "Apenas a landing oficial — nada depois do .com / .co. A página comparável.",
     lensHintWithStudents: "Soma o login de alunos às DUAS marcas. O da Smart são ~45K visitas/mês de quem já é cliente.",
     lensHintSingle: "Uma keyword por lado: o termo solto “smart” contra “open english”.",
@@ -1056,17 +1170,6 @@ function tint(hex, step) {
 
 function visibleKeywords() {
   const country = currentCountry();
-  if (isLens()) {
-    const view = currentSubTab() || {};
-    // The url view has no keyword breakdown to split; its toggle swaps in a
-    // second precomputed series (home only vs home + student login).
-    if (view.toggleStudents) {
-      return country.keywords.map(k => ({
-        ...k, m: (lensIncludeStudents && k.mAll) ? k.mAll : k.m
-      }));
-    }
-    return (lensMode === "split" && view.splittable) ? lensSplitRows() : country.keywords;
-  }
   return includeDuolingo ? country.keywords : country.keywords.filter(k => k.kw !== "duolingo");
 }
 
@@ -1160,8 +1263,8 @@ function wireOthersTooltip() {
 }
 
 function lensPrevValue(k) {
-  // Same window as currentValue, shifted back by its own length, so the
-  // delta compares like with like instead of "period vs last month".
+  // Same window as currentValue, shifted back by its own length, so a delta
+  // compares like with like instead of "period vs last month".
   const span = toIdx - fromIdx + 1;
   const from = fromIdx - span, to = fromIdx - 1;
   if (from < 0) return null;
@@ -1172,181 +1275,338 @@ function lensPrevValue(k) {
   return count ? Math.round(sum / count) : null;
 }
 
-function deltaCell(k) {
+function deltaHtml(k) {
   const prev = lensPrevValue(k), now = currentValue(k);
-  if (prev === null || prev === 0) return '<span class="delta flat">\u2014</span>';
+  if (prev === null || prev === 0) return '<span class="delta flat">—</span>';
   const pct = ((now - prev) / prev) * 100;
   const cls = pct > 1 ? "up" : (pct < -1 ? "down" : "flat");
-  const arrow = pct > 1 ? "\u25b2" : (pct < -1 ? "\u25bc" : "\u2192");
+  const arrow = pct > 1 ? "▲" : (pct < -1 ? "▼" : "→");
   return '<span class="delta ' + cls + '">' + arrow + " " + Math.abs(pct).toFixed(0) + "%</span>";
 }
 
-function renderLensControls() {
-  const controls = document.getElementById("lensControls");
-  if (!isLens()) {
-    controls.style.display = "none";
-    document.getElementById("lensRankCard").style.display = "none";
-    document.querySelector(".group-others-row").style.display = "";
-    return;
-  }
-  // The generic "Group Others" switch is meaningless with two brands, and
-  // the lens has its own controls, so only one of them is ever up.
-  document.querySelector(".group-others-row").style.display = "none";
-  controls.style.display = "flex";
+// Charts are rebuilt from scratch on every lens render, so every instance is
+// tracked here and destroyed first — Chart.js leaks canvases otherwise.
+let lensCharts = [];
+function lensChart(canvasId, config) {
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  lensCharts.push(new Chart(el, config));
+}
+function destroyLensCharts() { lensCharts.forEach(c => c.destroy()); lensCharts = []; }
 
-  const view = currentSubTab() || {};
-  const sw = document.getElementById("lensModeSwitch");
-  sw.innerHTML = "";
+function monthsInRange() { return DASHBOARD.months.slice(fromIdx, toIdx + 1); }
+function sliceRange(m) { return m.slice(fromIdx, toIdx + 1); }
 
-  if (view.toggleStudents) {
-    // Two URLs per brand: official home, plus the student login page. The
-    // student page is added to BOTH brands at once or to neither.
-    [[false, t("lensUrlHomeOnly")], [true, t("lensUrlWithStudents")]].forEach(([on, label]) => {
-      const b = document.createElement("button");
-      b.className = "lens-mode-btn" + (lensIncludeStudents === on ? " active" : "");
-      b.textContent = label;
-      b.addEventListener("click", () => { lensIncludeStudents = on; renderCountry(); });
-      sw.appendChild(b);
+function lensBrand(kw) { return (currentCountry().keywords || []).find(b => b.kw === kw); }
+function lensBrandColor(kw) { const b = lensBrand(kw); return b ? PAL[b.color_idx % PAL.length] : "#888"; }
+
+function lensRankedTerms(brandKw) {
+  const b = lensBrand(brandKw);
+  if (!b) return [];
+  return (b.breakdown || []).slice().sort((x, y) => currentValue(y) - currentValue(x));
+}
+
+// ---- shared chart option blocks -----------------------------------------
+function lensAxisOpts(unitLabel) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => " " + c.parsed.x.toLocaleString() + " " + unitLabel } }
+    },
+    scales: {
+      x: { beginAtZero: true, ticks: { callback: v => fmtNum(v) }, grid: { color: "#EEF2F7" } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  };
+}
+
+function lensLineOpts(unitLabel, stacked) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 11 } } },
+      tooltip: { callbacks: { label: c => " " + c.dataset.label + ": " + c.parsed.y.toLocaleString() + " " + unitLabel } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, autoSkipPadding: 12 } },
+      y: { stacked: !!stacked, beginAtZero: true, ticks: { callback: v => fmtNum(v) }, grid: { color: "#EEF2F7" } }
+    }
+  };
+}
+
+function card(title, sub, inner, extraClass) {
+  return '<div class="card ' + (extraClass || "") + '">' +
+    '<div class="card-header"><div><div class="card-title">' + title + '</div>' +
+    (sub ? '<div class="card-subtitle">' + sub + '</div>' : "") + '</div></div>' + inner + '</div>';
+}
+
+function kpi(label, value, sub, color) {
+  return '<div class="lens-kpi">' +
+    '<div class="lens-kpi-label">' + (color ? '<span class="lens-dot" style="background:' + color + '"></span>' : "") + label + '</div>' +
+    '<div class="lens-kpi-val">' + value + '</div>' +
+    (sub ? '<div class="lens-kpi-sub">' + sub + '</div>' : "") + '</div>';
+}
+
+// =========================================================================
+// VIEW 1 — Marca pura: each brand's own terms, ranked and over time
+// =========================================================================
+function renderLensBrandView(host) {
+  const unit = t("lensUnitSearches");
+  const detailed = lensMode !== "grouped";
+  const brands = ["smart", "open english"];
+
+  host.innerHTML =
+    '<div class="lens-toolbar">' +
+      '<div class="lens-mode-switch" id="lensModeSwitch"></div>' +
+      (detailed ? '<label class="lens-topn">' + t("lensTopNLabel") +
+        '<select id="lensTopN">' + [3, 5, 8, 100].map(n =>
+          '<option value="' + n + '"' + (lensTopN === n ? " selected" : "") + '>' +
+          (n === 100 ? t("lensTopNAll") : "Top " + n) + '</option>').join("") +
+        '</select></label>' : "") +
+      '<div class="lens-hint">' + (detailed ? t("lensHintSplit") : t("lensHintGrouped")) + '</div>' +
+    '</div>' +
+    (detailed
+      ? '<div class="row-2">' +
+          brands.map(b => card(t("lensTermsTitle")(cap(b)), t("lensTermsSub"),
+            '<div class="chart-wrap chart-wrap-terms"><canvas id="lensTerms_' + b.replace(/ /g, "_") + '"></canvas></div>' +
+            '<button class="lens-drill-btn lens-drill-wide" data-brand="' + b + '">' +
+            t("lensDrillBtn")(lensRankedTerms(b).length) + '</button>')).join("") +
+        '</div>' +
+        brands.map(b => card(t("lensEvoTitle")(cap(b)), t("lensEvoSub"),
+          '<div class="chart-wrap chart-wrap-trend"><canvas id="lensEvo_' + b.replace(/ /g, "_") + '"></canvas></div>')).join("")
+      : '<div class="row-2">' +
+          card(t("lensBrandCompareTitle"), t("lensTermsSub"),
+            '<div class="chart-wrap chart-wrap-terms"><canvas id="lensBrandBar"></canvas></div>') +
+          card(t("lensShareTitle"), t("lensShareSub"),
+            '<div class="chart-wrap chart-wrap-terms"><canvas id="lensBrandDonut"></canvas></div>') +
+        '</div>' +
+        card(t("lensBrandEvoTitle"), t("lensEvoSub"),
+          '<div class="chart-wrap chart-wrap-trend"><canvas id="lensBrandEvo"></canvas></div>'));
+
+  buildLensModeSwitch([["grouped", t("lensModeGrouped")], ["split", t("lensModeSplit")]],
+                      lensMode, v => { lensMode = v; renderCountry(); });
+  const sel = document.getElementById("lensTopN");
+  if (sel) sel.addEventListener("change", e => { lensTopN = +e.target.value; renderCountry(); });
+
+  if (detailed) {
+    brands.forEach(b => {
+      const rows = lensRankedTerms(b), base = lensBrandColor(b);
+      lensChart("lensTerms_" + b.replace(/ /g, "_"), {
+        type: "bar",
+        data: {
+          labels: rows.map(r => r.kw),
+          datasets: [{ data: rows.map(r => currentValue(r)),
+                       backgroundColor: rows.map((_, i) => tint(base, i)), borderRadius: 3 }]
+        },
+        options: { ...lensAxisOpts(unit), indexAxis: "y" }
+      });
+
+      // Top N as their own lines, everything below folded into one "Resto"
+      // line so the chart still adds up to the brand total.
+      const top = rows.slice(0, lensTopN), rest = rows.slice(lensTopN);
+      const datasets = top.map((r, i) => ({
+        label: r.kw, data: sliceRange(r.m), borderColor: tint(base, i),
+        backgroundColor: tint(base, i), borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false
+      }));
+      if (rest.length) {
+        datasets.push({
+          label: t("lensRestLabel")(rest.length),
+          data: monthsInRange().map((_, i) => rest.reduce((s, r) => s + (r.m[fromIdx + i] || 0), 0)),
+          borderColor: OTHERS_COLOR, backgroundColor: OTHERS_COLOR,
+          borderWidth: 2, borderDash: [4, 3], pointRadius: 0, tension: 0.3, fill: false
+        });
+      }
+      lensChart("lensEvo_" + b.replace(/ /g, "_"),
+        { type: "line", data: { labels: monthsInRange(), datasets }, options: lensLineOpts(unit) });
     });
-    document.getElementById("lensHint").textContent =
-      lensIncludeStudents ? t("lensHintWithStudents") : t("lensHintHomeOnly");
-  } else if (view.splittable) {
-    [["grouped", t("lensModeGrouped")], ["split", t("lensModeSplit")]].forEach(([mode, label]) => {
-      const b = document.createElement("button");
-      b.className = "lens-mode-btn" + (lensMode === mode ? " active" : "");
-      b.textContent = label;
-      b.addEventListener("click", () => { lensMode = mode; activeGroup = "top5"; renderCountry(); });
-      sw.appendChild(b);
-    });
-    document.getElementById("lensHint").textContent =
-      lensMode === "grouped" ? t("lensHintGrouped") : t("lensHintSplit");
   } else {
-    sw.style.display = "none";
-    document.getElementById("lensHint").textContent = t("lensHintSingle");
+    const bs = brands.map(lensBrand).filter(Boolean);
+    lensChart("lensBrandBar", {
+      type: "bar",
+      data: { labels: bs.map(b => cap(b.kw)),
+              datasets: [{ data: bs.map(b => currentValue(b)),
+                           backgroundColor: bs.map(b => PAL[b.color_idx % PAL.length]), borderRadius: 4 }] },
+      options: { ...lensAxisOpts(unit), indexAxis: "y" }
+    });
+    lensChart("lensBrandDonut", {
+      type: "doughnut",
+      data: { labels: bs.map(b => cap(b.kw)),
+              datasets: [{ data: bs.map(b => currentValue(b)),
+                           backgroundColor: bs.map(b => PAL[b.color_idx % PAL.length]), borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: "62%",
+                 plugins: { legend: { position: "bottom", labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
+                            tooltip: { callbacks: { label: c => " " + c.label + ": " + c.parsed.toLocaleString() } } } }
+    });
+    lensChart("lensBrandEvo", {
+      type: "line",
+      data: { labels: monthsInRange(),
+              datasets: bs.map(b => ({ label: cap(b.kw), data: sliceRange(b.m),
+                borderColor: PAL[b.color_idx % PAL.length], backgroundColor: PAL[b.color_idx % PAL.length],
+                borderWidth: 2.5, pointRadius: 0, tension: 0.3, fill: false })) },
+      options: lensLineOpts(unit)
+    });
   }
-  if (sw.children.length) sw.style.display = "";
-
-  renderLensRanking();
 }
 
-function renderLensRanking() {
-  const card = document.getElementById("lensRankCard");
+// =========================================================================
+// VIEW 2 — Por URL: four pages, traffic not searches
+// =========================================================================
+function renderLensUrlView(host, view) {
+  const unit = t("lensUnitTraffic");
+  const parts = ["open english", "smart"].map(kw => {
+    const b = lensBrand(kw);
+    return { kw, b, home: currentValue({ m: b.m }), urls: (view.urls || {})[kw] || {} };
+  });
+  const ratio = parts[1].home ? (parts[0].home / parts[1].home) : null;
+
+  host.innerHTML =
+    '<div class="lens-note-inline">' + t("lensUrlNote") + '</div>' +
+    '<div class="lens-kpi-row">' +
+      parts.map(p => kpi(cap(p.kw), fmtNum(p.home), p.urls.home, lensBrandColor(p.kw))).join("") +
+      kpi(t("lensUrlRatioLabel"),
+          ratio ? (ratio >= 1 ? ratio.toFixed(1) + "×" : ratio.toFixed(2) + "×") : "—",
+          t("lensUrlRatioSub")) +
+    '</div>' +
+    card(t("lensUrlTrendTitle"), t("lensUrlTrendSub"),
+      '<div class="chart-wrap chart-wrap-trend"><canvas id="lensUrlTrend"></canvas></div>') +
+    card(t("lensUrlBarTitle"), t("lensUrlBarSub"),
+      '<div class="chart-wrap chart-wrap-capture"><canvas id="lensUrlBar"></canvas></div>');
+
+  lensChart("lensUrlTrend", {
+    type: "line",
+    data: { labels: monthsInRange(), datasets: parts.map(p => ({
+      label: p.urls.home || cap(p.kw), data: sliceRange(p.b.m),
+      borderColor: lensBrandColor(p.kw), backgroundColor: lensBrandColor(p.kw),
+      borderWidth: 2.5, pointRadius: 0, tension: 0.3, fill: false })) },
+    options: lensLineOpts(unit)
+  });
+
+  lensChart("lensUrlBar", {
+    type: "bar",
+    data: { labels: parts.map(p => p.urls.home || cap(p.kw)),
+            datasets: [{ data: parts.map(p => p.home),
+                         backgroundColor: parts.map(p => lensBrandColor(p.kw)), borderRadius: 4 }] },
+    options: { ...lensAxisOpts(unit), indexAxis: "y" }
+  });
+}
+
+// =========================================================================
+// VIEW 3 — Smart limpio: one keyword each, plus what "smart" is NOT
+// =========================================================================
+function renderLensCleanView(host, country) {
+  const unit = t("lensUnitSearches");
+  const bs = ["open english", "smart"].map(lensBrand).filter(Boolean);
   const view = currentSubTab() || {};
-  const brands = currentCountry().keywords || [];
-  if (view.urls) { renderLensUrlTable(view); return; }
-  if (!brands.some(b => (b.breakdown || []).length > 1)) {
-    // One keyword per side (the "clean" view) — there is nothing to rank.
-    card.style.display = "none";
-    return;
-  }
-  const unit = (currentSubTab() || {}).unit;
-  document.getElementById("lensRankTitle").textContent = t("lensRankTitle");
-  document.getElementById("lensRankSub").textContent =
-    unit === "traffic" ? t("lensRankSubTraffic") : t("lensRankSub");
+  const rt = view.routing || {};
 
-  const body = document.getElementById("lensRankBody");
-  body.innerHTML = "";
-  brands.forEach(brand => {
-    const rows = (brand.breakdown || []).slice()
-      .map(k => ({ ...k, brand: brand.kw, color_idx: brand.color_idx }))
-      .sort((a, b) => currentValue(b) - currentValue(a));
-    const total = rows.reduce((s, k) => s + currentValue(k), 0) || 1;
-    const top = rows.slice(0, 6);
+  host.innerHTML =
+    '<div class="lens-warn">' + t("lensCleanWarn") + '</div>' +
+    '<div class="lens-kpi-row">' +
+      bs.map(b => {
+        const r = rt[b.kw] || {};
+        return kpi(t("lensRoutingKpiLabel")('"' + b.kw + '"'),
+                   (r.siteRate != null ? r.siteRate + "%" : "—"),
+                   r.domain ? t("lensRoutingKpiSub")((r.site || 0).toLocaleString(),
+                     (r.volume || 0).toLocaleString(), r.domain) : "",
+                   PAL[b.color_idx % PAL.length]);
+      }).join("") +
+    '</div>' +
+    card(t("lensRoutingTitle"), t("lensRoutingSub")(view.routingDate || ""),
+      '<div class="chart-wrap chart-wrap-capture"><canvas id="lensRoutingBar"></canvas></div>' +
+      '<button class="lens-drill-btn lens-drill-wide" id="lensMethodBtn">' + t("lensMethodBtn") + '</button>') +
+    card(t("lensCleanTrendTitle"), t("lensCleanTrendSub"),
+      '<div class="chart-wrap chart-wrap-trend"><canvas id="lensCleanTrend"></canvas></div>');
 
-    const block = document.createElement("div");
-    block.className = "lens-rank-block";
-    block.innerHTML =
-      '<div class="lens-rank-head">' +
-        '<span class="lens-dot" style="background:' + PAL[brand.color_idx % PAL.length] + '"></span>' +
-        '<span class="lens-rank-brand">' + cap(brand.kw) + '</span>' +
-        '<span class="lens-rank-total">' + fmtNum(currentValue(brand)) + '</span>' +
-        '<button class="lens-drill-btn" type="button" data-brand="' + brand.kw + '">' +
-          t("lensDrillBtn")(rows.length) + '</button>' +
-      '</div>' +
-      '<table class="lens-rank-table"><tbody>' +
-        top.map((k, i) => {
-          const v = currentValue(k);
-          const pct = (v / total) * 100;
-          return '<tr><td class="rank-n">' + (i + 1) + '</td>' +
-            '<td class="rank-kw">' + k.kw + '</td>' +
-            '<td class="rank-barcell"><span class="rank-bar" style="width:' + Math.max(pct, 1).toFixed(1) +
-              '%;background:' + tint(PAL[brand.color_idx % PAL.length], i) + '"></span></td>' +
-            '<td class="rank-v">' + fmtNum(v) + '</td>' +
-            '<td class="rank-p">' + pct.toFixed(1) + '%</td>' +
-            '<td class="rank-d">' + deltaCell(k) + '</td></tr>';
-        }).join("") +
-      '</tbody></table>' +
-      (rows.length > top.length
-        ? '<div class="lens-rank-more">' + t("lensRankMore")(rows.length - top.length) + '</div>'
-        : "");
-    body.appendChild(block);
+  // Where every search for each head term actually lands. One stacked bar
+  // per term: the brand's own home, the brand's other pages, everyone else.
+  const rows = bs.filter(b => rt[b.kw]);
+  lensChart("lensRoutingBar", {
+    type: "bar",
+    data: {
+      labels: rows.map(b => '"' + b.kw + '" · ' + (rt[b.kw].volume || 0).toLocaleString()),
+      datasets: [
+        { label: t("lensRoutingSite"), data: rows.map(b => rt[b.kw].site),
+          backgroundColor: rows.map(b => PAL[b.color_idx % PAL.length]), borderRadius: 3 },
+        { label: t("lensRoutingElsewhere"), data: rows.map(b => rt[b.kw].elsewhere),
+          backgroundColor: "#E2E8F0", borderRadius: 3 }
+      ]
+    },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
+        tooltip: { callbacks: {
+          label: c => " " + c.dataset.label + ": " + c.parsed.x.toLocaleString() + " " + unit,
+          // Array, not a joined string: Chart.js renders one tooltip line
+          // per element, and it avoids an escaped newline inside a JS
+          // string that lives inside a Python template.
+          afterLabel: c => c.datasetIndex !== 0 ? [] :
+            ((rt[rows[c.dataIndex].kw] || {}).pages || [])
+              .map(pg => "   " + pg.url + ": " + pg.traffic.toLocaleString())
+        } }
+      },
+      scales: {
+        x: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtNum(v) }, grid: { color: "#EEF2F7" } },
+        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
   });
 
-  body.querySelectorAll(".lens-drill-btn").forEach(btn => {
-    btn.addEventListener("click", () => openLensModal(btn.dataset.brand));
+  lensChart("lensCleanTrend", {
+    type: "line",
+    data: { labels: monthsInRange(),
+            datasets: bs.map(b => ({ label: '"' + b.kw + '"', data: sliceRange(b.m),
+              borderColor: PAL[b.color_idx % PAL.length], backgroundColor: PAL[b.color_idx % PAL.length],
+              borderWidth: 2.5, pointRadius: 0, tension: 0.3, fill: false })) },
+    options: lensLineOpts(unit)
   });
-  card.style.display = "block";
+
+  document.getElementById("lensMethodBtn").addEventListener("click", () => openMethodModal(rt, view.routingDate));
 }
 
-function renderLensUrlTable(view) {
-  const card = document.getElementById("lensRankCard");
-  document.getElementById("lensRankTitle").textContent = t("lensUrlTitle");
-  document.getElementById("lensRankSub").textContent = t("lensUrlSub");
-  const body = document.getElementById("lensRankBody");
-  body.innerHTML = "";
-  (currentCountry().keywords || []).forEach(brand => {
-    const urls = view.urls[brand.kw] || {};
-    const home = currentValue({ m: brand.m });
-    const withAll = brand.mAll ? currentValue({ m: brand.mAll }) : home;
-    const students = Math.max(0, withAll - home);
-    const block = document.createElement("div");
-    block.className = "lens-rank-block";
-    block.innerHTML =
-      '<div class="lens-rank-head">' +
-        '<span class="lens-dot" style="background:' + PAL[brand.color_idx % PAL.length] + '"></span>' +
-        '<span class="lens-rank-brand">' + cap(brand.kw) + '</span>' +
-      '</div>' +
-      '<table class="lens-rank-table"><tbody>' +
-        '<tr><td class="rank-kw"><code>' + (urls.home || "") + '</code></td>' +
-          '<td class="rank-tag">' + t("lensUrlHomeTag") + '</td>' +
-          '<td class="rank-v">' + fmtNum(home) + '</td></tr>' +
-        '<tr><td class="rank-kw"><code>' + (urls.student || "") + '</code></td>' +
-          '<td class="rank-tag">' + t("lensUrlStudentTag") + '</td>' +
-          '<td class="rank-v">' + fmtNum(students) + '</td></tr>' +
-      '</tbody></table>';
-    body.appendChild(block);
-  });
-  card.style.display = "block";
+function openMethodModal(rt, date) {
+  document.getElementById("lensModalTitle").textContent = t("lensMethodTitle");
+  document.getElementById("lensModalSub").textContent = t("lensMethodSub")(date || "");
+  document.getElementById("lensModalBody").innerHTML =
+    '<div class="lens-method">' + t("lensMethodBody") + '</div>' +
+    Object.keys(rt).map(k => {
+      const r = rt[k];
+      return '<div class="lens-rank-head"><span class="lens-rank-brand">"' + r.term + '" · ' +
+          r.volume.toLocaleString() + ' ' + t("lensUnitSearches") + '/mo</span></div>' +
+        '<table class="lens-modal-table"><thead><tr><th>' + t("lensRoutingWhere") +
+          '</th><th class="num">' + t("lensColVol") + '</th><th class="num">%</th></tr></thead><tbody>' +
+        (r.pages || []).map(pg => '<tr><td class="rank-kw"><code>' + pg.url + '</code></td><td class="num">' +
+          pg.traffic.toLocaleString() + '</td><td class="num">' +
+          ((pg.traffic / r.volume) * 100).toFixed(1) + '%</td></tr>').join("") +
+        '<tr><td class="rank-kw">' + t("lensRoutingElsewhere") + '</td><td class="num">' +
+          r.elsewhere.toLocaleString() + '</td><td class="num">' +
+          ((r.elsewhere / r.volume) * 100).toFixed(1) + '%</td></tr>' +
+        '</tbody></table>';
+    }).join("");
+  document.getElementById("lensModal").style.display = "flex";
 }
 
 function openLensModal(brandKw) {
-  const brand = (currentCountry().keywords || []).find(b => b.kw === brandKw);
+  const brand = lensBrand(brandKw);
   if (!brand) return;
-  const rows = (brand.breakdown || []).slice().sort((a, b) => currentValue(b) - currentValue(a));
+  const rows = lensRankedTerms(brandKw);
   const total = rows.reduce((s, k) => s + currentValue(k), 0) || 1;
-  const unit = (currentSubTab() || {}).unit;
-
   document.getElementById("lensModalTitle").textContent = cap(brand.kw);
   document.getElementById("lensModalSub").textContent =
     t("lensModalSub")(rows.length, fmtNum(currentValue(brand)),
-                      DASHBOARD.months[fromIdx], DASHBOARD.months[toIdx],
-                      unit === "traffic" ? t("lensUnitTraffic") : t("lensUnitSearches"));
-
+                      DASHBOARD.months[fromIdx], DASHBOARD.months[toIdx], t("lensUnitSearches"));
   document.getElementById("lensModalBody").innerHTML =
-    '<table class="lens-modal-table"><thead><tr>' +
-      '<th>#</th><th>' + t("lensColKw") + '</th><th class="num">' + t("lensColVol") +
-      '</th><th class="num">' + t("lensColShare") + '</th><th class="num">' + t("lensColDelta") + '</th>' +
-    '</tr></thead><tbody>' +
+    '<table class="lens-modal-table"><thead><tr><th>#</th><th>' + t("lensColKw") + '</th><th class="num">' +
+    t("lensColVol") + '</th><th class="num">' + t("lensColShare") + '</th><th class="num">' + t("lensColDelta") +
+    '</th></tr></thead><tbody>' +
     rows.map((k, i) => {
       const v = currentValue(k);
-      return '<tr><td class="rank-n">' + (i + 1) + '</td>' +
-        '<td class="rank-kw">' + k.kw + '</td>' +
-        '<td class="num">' + v.toLocaleString() + '</td>' +
-        '<td class="num">' + ((v / total) * 100).toFixed(1) + '%</td>' +
-        '<td class="num">' + deltaCell(k) + '</td></tr>';
-    }).join("") +
-    '</tbody></table>';
-
+      return '<tr><td class="rank-n">' + (i + 1) + '</td><td class="rank-kw">' + k.kw + '</td><td class="num">' +
+        v.toLocaleString() + '</td><td class="num">' + ((v / total) * 100).toFixed(1) + '%</td><td class="num">' +
+        deltaHtml(k) + '</td></tr>';
+    }).join("") + '</tbody></table>';
   document.getElementById("lensModal").style.display = "flex";
 }
 
@@ -1354,10 +1614,38 @@ function closeLensModal() { document.getElementById("lensModal").style.display =
 
 function wireLensModal() {
   document.getElementById("lensModalClose").addEventListener("click", closeLensModal);
-  document.getElementById("lensModal").addEventListener("click", e => {
-    if (e.target.id === "lensModal") closeLensModal();
-  });
+  document.getElementById("lensModal").addEventListener("click", e => { if (e.target.id === "lensModal") closeLensModal(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeLensModal(); });
+}
+
+function buildLensModeSwitch(options, active, onPick) {
+  const sw = document.getElementById("lensModeSwitch");
+  if (!sw) return;
+  sw.innerHTML = "";
+  options.forEach(([val, label]) => {
+    const b = document.createElement("button");
+    b.className = "lens-mode-btn" + (active === val ? " active" : "");
+    b.textContent = label;
+    b.addEventListener("click", () => onPick(val));
+    sw.appendChild(b);
+  });
+}
+
+// ---- entry point ---------------------------------------------------------
+function renderLens() {
+  const host = document.getElementById("lensMain");
+  const country = activeCountryEntry();
+  const view = currentSubTab();
+  destroyLensCharts();
+  document.getElementById("genericMain").style.display = "none";
+  host.style.display = "block";
+
+  if (view.id === "url") renderLensUrlView(host, view);
+  else if (view.id === "clean") renderLensCleanView(host, country);
+  else renderLensBrandView(host);
+
+  host.querySelectorAll(".lens-drill-btn[data-brand]").forEach(btn =>
+    btn.addEventListener("click", () => openLensModal(btn.dataset.brand)));
 }
 
 function renderCountry() {
@@ -1366,7 +1654,9 @@ function renderCountry() {
   // DASHBOARD.countries and mark the wrong tab active (or crash).
   document.querySelectorAll("#tabsRow .tab-btn").forEach((b,i) => b.classList.toggle("active", DASHBOARD.countries[i].id === activeCountryId));
   buildSubTabs();
-  renderLensControls();
+  if (isLens()) { renderLens(); return; }
+  document.getElementById("lensMain").style.display = "none";
+  document.getElementById("genericMain").style.display = "";
   const kws = visibleKeywords();
   const grouping = computeGrouping(kws);
   currentGrouping = grouping;

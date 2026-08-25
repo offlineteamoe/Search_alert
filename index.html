@@ -72,6 +72,47 @@ header h1 span { color:var(--orange); }
 .lens-excluded .num { text-align:right; font-variant-numeric:tabular-nums; }
 .lens-excluded tr:last-child td { border-bottom:none; }
 .lens-source { margin-top:8px; font-size:11px; opacity:0.75; }
+.lens-controls { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+.lens-mode-switch { display:inline-flex; background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; padding:3px; gap:3px; }
+.lens-mode-btn { font-size:12px; font-weight:600; padding:6px 14px; border:none; border-radius:6px; background:transparent; color:var(--gray-500); cursor:pointer; transition:all 0.15s; }
+.lens-mode-btn:hover { color:var(--blue); }
+.lens-mode-btn.active { background:var(--white); color:var(--blue); box-shadow:0 1px 3px rgba(0,0,102,0.12); }
+.lens-hint { font-size:12px; color:var(--gray-500); }
+.lens-rank-wrap { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:22px; }
+.lens-rank-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.lens-dot { width:10px; height:10px; border-radius:50%; flex:none; }
+.lens-rank-brand { font-size:13px; font-weight:700; color:var(--gray-700); }
+.lens-rank-total { font-size:13px; font-weight:700; color:var(--gray-500); margin-left:auto; font-variant-numeric:tabular-nums; }
+.lens-drill-btn { font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; border:1px solid var(--gray-200); background:var(--white); color:var(--blue); cursor:pointer; white-space:nowrap; }
+.lens-drill-btn:hover { border-color:var(--blue); background:var(--gray-100); }
+.lens-rank-table { width:100%; border-collapse:collapse; }
+.lens-rank-table td { padding:5px 6px; font-size:12px; border-bottom:1px solid var(--gray-100); vertical-align:middle; }
+.lens-rank-table tr:last-child td { border-bottom:none; }
+.rank-n { color:var(--gray-400,#94A3B8); width:18px; font-size:11px; }
+.rank-kw { color:var(--gray-700); max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rank-barcell { width:70px; }
+.rank-bar { display:block; height:7px; border-radius:4px; min-width:2px; }
+.rank-v, .rank-p, .rank-d { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.rank-p { color:var(--gray-500); width:46px; }
+.rank-tag { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--gray-400,#94A3B8); white-space:nowrap; }
+.lens-rank-table code { font-size:11px; background:var(--gray-100); border-radius:4px; padding:1px 5px; }
+.rank-d { width:56px; }
+.delta { font-size:11px; font-weight:600; }
+.delta.up { color:#15803D; } .delta.down { color:#B91C1C; } .delta.flat { color:var(--gray-400,#94A3B8); }
+.lens-rank-more { margin-top:8px; font-size:11px; color:var(--gray-500); }
+.lens-modal-backdrop { position:fixed; inset:0; z-index:100; background:rgba(15,23,42,0.55); display:flex; align-items:center; justify-content:center; padding:24px; }
+.lens-modal { background:var(--white); border-radius:14px; box-shadow:0 24px 60px rgba(0,0,102,0.28); width:min(680px,100%); max-height:82vh; display:flex; flex-direction:column; overflow:hidden; }
+.lens-modal-head { display:flex; align-items:flex-start; gap:16px; padding:20px 24px 14px; border-bottom:1px solid var(--gray-200); }
+.lens-modal-title { font-size:17px; font-weight:700; color:var(--gray-700); }
+.lens-modal-sub { font-size:12px; color:var(--gray-500); margin-top:3px; }
+.lens-modal-close { margin-left:auto; border:none; background:transparent; font-size:26px; line-height:1; color:var(--gray-400,#94A3B8); cursor:pointer; padding:0 4px; }
+.lens-modal-close:hover { color:var(--gray-700); }
+.lens-modal-body { overflow-y:auto; padding:8px 24px 22px; }
+.lens-modal-table { width:100%; border-collapse:collapse; }
+.lens-modal-table th { position:sticky; top:0; background:var(--white); text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--gray-500); padding:10px 6px; border-bottom:1px solid var(--gray-200); }
+.lens-modal-table td { padding:7px 6px; font-size:12.5px; border-bottom:1px solid var(--gray-100); }
+.lens-modal-table .num { text-align:right; font-variant-numeric:tabular-nums; }
+@media (max-width:760px) { .lens-rank-wrap { grid-template-columns:1fr; } }
 .flag-icon { display:inline-flex; width:18px; height:13px; border-radius:2px; overflow:hidden; vertical-align:middle; margin-right:7px; box-shadow:0 0 0 1px rgba(0,0,0,0.1); flex-shrink:0; }
 .flag-icon svg { width:100%; height:100%; display:block; }
 main { max-width:1280px; margin:0 auto; padding:24px 48px 60px; display:grid; gap:28px; }
@@ -193,6 +234,16 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 <div class="tabs-row subtabs-row" id="subTabsRow" style="display:none;"></div>
 <div class="lens-note" id="lensNote" style="display:none;"></div>
 <main>
+  <div class="lens-controls" id="lensControls" style="display:none;">
+    <div class="lens-mode-switch" id="lensModeSwitch"></div>
+    <div class="lens-hint" id="lensHint"></div>
+  </div>
+  <div class="card lens-card" id="lensRankCard" style="display:none;">
+    <div class="card-header">
+      <div><div class="card-title" id="lensRankTitle"></div><div class="card-subtitle" id="lensRankSub"></div></div>
+    </div>
+    <div class="lens-rank-wrap" id="lensRankBody"></div>
+  </div>
   <div class="group-others-row">
     <div class="group-others-control">
       <span class="others-info" id="othersInfoWrap">
@@ -239,6 +290,15 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
     <div class="chart-wrap chart-wrap-trend"><canvas id="trendPctChart"></canvas></div>
   </div>
 </main>
+<div class="lens-modal-backdrop" id="lensModal" style="display:none;">
+  <div class="lens-modal" role="dialog" aria-modal="true" aria-labelledby="lensModalTitle">
+    <div class="lens-modal-head">
+      <div><div class="lens-modal-title" id="lensModalTitle"></div><div class="lens-modal-sub" id="lensModalSub"></div></div>
+      <button class="lens-modal-close" id="lensModalClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="lens-modal-body" id="lensModalBody"></div>
+  </div>
+</div>
 <footer id="txt-footer">Data source: Ahrefs Keywords Explorer · Open English SEO Team</footer>
 
 </div>
@@ -437,6 +497,8 @@ window.onload = () => {
 const PAL = ["#22C55E", "#0066FF", "#FF6600", "#7C3AED", "#06B6D4", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6", "#EF4444", "#84CC16", "#F97316", "#8B5CF6", "#64748B", "#A78BFA", "#34D399", "#FB923C", "#94A3B8", "#CBD5E1", "#FCD34D"];
 let activeCountryId = null;
 let activeSubTabId = null;
+let lensMode = "grouped";
+let lensIncludeStudents = false;
 let pieChart, barChart, trendChart, trendPctChart;
 let activeGroup = "top5";
 let fromIdx = 0, toIdx = 0;
@@ -497,12 +559,30 @@ const I18N = {
     countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
     lensViewNames: { brand:"Brand only", url:"By URL", clean:"Smart, cleaned" },
     lensViewDesc: {
-      brand: "The brand name alone, spelled right and wrong, no modifiers \u2014 same rule applied to both sides so the comparison is fair.",
+      brand: "The brand name alone, spelled right and wrong. No prices, no opinions, no platform, no \u201cjunior\u201d \u2014 same rule both sides. The ambiguous bare term \u201csmart\u201d is left OUT, so every number here is unarguably the brand.",
       url: "Ahrefs' estimated organic traffic to each site in Colombia. This view counts visits, not searches, so its numbers are not comparable to the other two.",
-      clean: "Every \u201csmart\u201d search in Colombia that is the language academy, against Open English's full branded demand. The bare term \u201csmart\u201d is counted in: on the Colombian SERP smart.edu.co holds positions 1, 2, 5, 6 and 9."
+      clean: "The same brand-only baskets, with one single change: the bare term \u201csmart\u201d (~46K/mo) is added back to Smart. Open English does not move. On the Colombian SERP that term returns smart.edu.co at positions 1, 2, 5, 6 and 9 \u2014 Smart Fit only reaches 8 \u2014 so it is neither pure noise nor pure signal. The two views are the floor and the ceiling."
     },
     lensExcludedTitle: (n) => "See the " + n + " excluded \u201csmart\u201d terms",
     lensMembersTitle: (n) => "See the " + n + " keywords behind these two lines",
+    lensModeGrouped: "Grouped by brand", lensModeSplit: "Split by keyword",
+    lensUrlHomeOnly: "Home only", lensUrlWithStudents: "+ student login",
+    lensHintHomeOnly: "Official landing page only — nothing after the .com / .co. The comparable page.",
+    lensHintWithStudents: "Adds the student login page to BOTH brands. Smart's is ~45K visits/mo of people who are already customers.",
+    lensHintSingle: "One keyword per side: the bare “smart” against “open english”.",
+    lensUrlTitle: "The two URLs behind each line",
+    lensUrlSub: "Avg monthly organic traffic in the selected period, Colombia",
+    lensUrlHomeTag: "home", lensUrlStudentTag: "students",
+    lensHintGrouped: "Two lines: each brand as the sum of all the ways its name is written.",
+    lensHintSplit: "Every keyword on its own line, shaded within its brand's colour.",
+    lensRankTitle: "Which keyword brings the most",
+    lensRankSub: "Avg monthly searches in the selected period · share of its own brand · vs the previous equivalent period",
+    lensRankSubTraffic: "Avg monthly organic traffic in the selected period · vs the previous equivalent period",
+    lensDrillBtn: (n) => "All " + n + " →",
+    lensRankMore: (n) => "+ " + n + " more — open the full list to see them.",
+    lensModalSub: (n, tot, from, to, unit) => n + " keywords · " + tot + " " + unit + "/mo avg · " + from + " – " + to,
+    lensUnitSearches: "searches", lensUnitTraffic: "visits",
+    lensColKw: "Keyword", lensColVol: "Volume", lensColShare: "Share", lensColDelta: "Change",
     lensExcludedKw: "Term", lensExcludedVol: "Volume", lensExcludedWhy: "What it actually is",
   },
   es: {
@@ -548,12 +628,30 @@ const I18N = {
     countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
     lensViewNames: { brand:"Marca pura", url:"Por URL", clean:"Smart limpio" },
     lensViewDesc: {
-      brand: "Solo el nombre de la marca, bien y mal escrito, sin modificadores \u2014 la misma regla en ambos lados para que la comparaci\u00f3n sea justa.",
+      brand: "Solo el nombre de la marca, bien y mal escrito. Sin precios, sin opiniones, sin plataforma, sin \u201cjunior\u201d \u2014 la misma regla en ambos lados. El t\u00e9rmino suelto \u201csmart\u201d, que es ambiguo, queda FUERA: aqu\u00ed todo n\u00famero es indiscutiblemente la marca.",
       url: "Tr\u00e1fico org\u00e1nico estimado por Ahrefs hacia cada sitio en Colombia. Esta vista cuenta visitas, no b\u00fasquedas: sus n\u00fameros no son comparables con las otras dos.",
-      clean: "Toda b\u00fasqueda de \u201csmart\u201d en Colombia que es la academia de idiomas, contra la demanda de marca completa de Open English. El t\u00e9rmino suelto \u201csmart\u201d s\u00ed cuenta: en el SERP colombiano smart.edu.co ocupa las posiciones 1, 2, 5, 6 y 9."
+      clean: "Las mismas canastas de marca, con un \u00fanico cambio: se le devuelve a Smart el t\u00e9rmino suelto \u201csmart\u201d (~46K/mes). Open English no se mueve. En el SERP colombiano ese t\u00e9rmino devuelve smart.edu.co en las posiciones 1, 2, 5, 6 y 9 \u2014 Smart Fit apenas llega a la 8 \u2014 as\u00ed que no es ni puro ruido ni pura se\u00f1al. Las dos vistas son el piso y el techo."
     },
     lensExcludedTitle: (n) => "Ver los " + n + " t\u00e9rminos \u201csmart\u201d excluidos",
     lensMembersTitle: (n) => "Ver las " + n + " keywords detr\u00e1s de estas dos l\u00edneas",
+    lensModeGrouped: "Agrupado por marca", lensModeSplit: "Separado por keyword",
+    lensHintGrouped: "Dos líneas: cada marca como la suma de todas las formas de escribir su nombre.",
+    lensHintSplit: "Cada keyword en su propia línea, matizada dentro del color de su marca.",
+    lensRankTitle: "Qué keyword trae más",
+    lensUrlHomeOnly: "Solo home", lensUrlWithStudents: "+ login de alumnos",
+    lensHintHomeOnly: "Solo la landing oficial — nada después del .com / .co. La página comparable.",
+    lensHintWithStudents: "Suma el login de alumnos a AMBAS marcas. El de Smart son ~45K visitas/mes de gente que ya es cliente.",
+    lensHintSingle: "Una keyword por lado: el término suelto “smart” contra “open english”.",
+    lensUrlTitle: "Las dos URLs detrás de cada línea",
+    lensUrlSub: "Tráfico orgánico mensual promedio del periodo, Colombia",
+    lensUrlHomeTag: "home", lensUrlStudentTag: "alumnos",
+    lensRankSub: "Búsquedas mensuales promedio del periodo · peso dentro de su marca · vs el periodo equivalente anterior",
+    lensRankSubTraffic: "Tráfico orgánico mensual promedio del periodo · vs el periodo equivalente anterior",
+    lensDrillBtn: (n) => "Ver las " + n + " →",
+    lensRankMore: (n) => "+ " + n + " más — abre la lista completa para verlas.",
+    lensModalSub: (n, tot, from, to, unit) => n + " keywords · " + tot + " " + unit + "/mes promedio · " + from + " – " + to,
+    lensUnitSearches: "búsquedas", lensUnitTraffic: "visitas",
+    lensColKw: "Keyword", lensColVol: "Volumen", lensColShare: "Peso", lensColDelta: "Cambio",
     lensExcludedKw: "T\u00e9rmino", lensExcludedVol: "Volumen", lensExcludedWhy: "Qu\u00e9 es en realidad",
   },
   pt: {
@@ -599,12 +697,30 @@ const I18N = {
     countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM", "Colombia Smart":"Col\u00f4mbia \u00b7 Smart" },
     lensViewNames: { brand:"S\u00f3 a marca", url:"Por URL", clean:"Smart limpo" },
     lensViewDesc: {
-      brand: "Apenas o nome da marca, escrito certo e errado, sem modificadores \u2014 a mesma regra dos dois lados para que a compara\u00e7\u00e3o seja justa.",
+      brand: "Apenas o nome da marca, escrito certo e errado. Sem pre\u00e7os, sem opini\u00f5es, sem plataforma, sem \u201cjunior\u201d \u2014 a mesma regra dos dois lados. O termo solto \u201csmart\u201d, que \u00e9 amb\u00edguo, fica DE FORA: aqui todo n\u00famero \u00e9 indiscutivelmente a marca.",
       url: "Tr\u00e1fego org\u00e2nico estimado pela Ahrefs para cada site na Col\u00f4mbia. Esta vis\u00e3o conta visitas, n\u00e3o buscas: seus n\u00fameros n\u00e3o s\u00e3o compar\u00e1veis com as outras duas.",
-      clean: "Toda busca por \u201csmart\u201d na Col\u00f4mbia que \u00e9 a academia de idiomas, contra a demanda de marca completa da Open English. O termo solto \u201csmart\u201d entra na conta: no SERP colombiano smart.edu.co ocupa as posi\u00e7\u00f5es 1, 2, 5, 6 e 9."
+      clean: "As mesmas cestas de marca, com uma \u00fanica mudan\u00e7a: o termo solto \u201csmart\u201d (~46K/m\u00eas) volta para o lado da Smart. A Open English n\u00e3o se mexe. No SERP colombiano esse termo devolve smart.edu.co nas posi\u00e7\u00f5es 1, 2, 5, 6 e 9 \u2014 a Smart Fit s\u00f3 chega \u00e0 8 \u2014 ent\u00e3o n\u00e3o \u00e9 nem puro ru\u00eddo nem puro sinal. As duas vis\u00f5es s\u00e3o o piso e o teto."
     },
     lensExcludedTitle: (n) => "Ver os " + n + " termos \u201csmart\u201d exclu\u00eddos",
     lensMembersTitle: (n) => "Ver as " + n + " keywords por tr\u00e1s destas duas linhas",
+    lensModeGrouped: "Agrupado por marca", lensModeSplit: "Separado por keyword",
+    lensHintGrouped: "Duas linhas: cada marca como a soma de todas as formas de escrever seu nome.",
+    lensHintSplit: "Cada keyword em sua própria linha, matizada dentro da cor da sua marca.",
+    lensRankTitle: "Qual keyword traz mais",
+    lensUrlHomeOnly: "Só home", lensUrlWithStudents: "+ login de alunos",
+    lensHintHomeOnly: "Apenas a landing oficial — nada depois do .com / .co. A página comparável.",
+    lensHintWithStudents: "Soma o login de alunos às DUAS marcas. O da Smart são ~45K visitas/mês de quem já é cliente.",
+    lensHintSingle: "Uma keyword por lado: o termo solto “smart” contra “open english”.",
+    lensUrlTitle: "As duas URLs por trás de cada linha",
+    lensUrlSub: "Tráfego orgânico mensal médio do período, Colômbia",
+    lensUrlHomeTag: "home", lensUrlStudentTag: "alunos",
+    lensRankSub: "Buscas mensais médias do período · peso dentro da sua marca · vs o período equivalente anterior",
+    lensRankSubTraffic: "Tráfego orgânico mensal médio do período · vs o período equivalente anterior",
+    lensDrillBtn: (n) => "Ver as " + n + " →",
+    lensRankMore: (n) => "+ " + n + " — abra a lista completa para vê-las.",
+    lensModalSub: (n, tot, from, to, unit) => n + " keywords · " + tot + " " + unit + "/mês médio · " + from + " – " + to,
+    lensUnitSearches: "buscas", lensUnitTraffic: "visitas",
+    lensColKw: "Keyword", lensColVol: "Volume", lensColShare: "Peso", lensColDelta: "Mudança",
     lensExcludedKw: "Termo", lensExcludedVol: "Volume", lensExcludedWhy: "O que \u00e9 de verdade",
   },
 };
@@ -910,8 +1026,47 @@ function wireDuolingoToggle() {
   };
 }
 
+// ---- Lens (Colombia · Smart) --------------------------------------------
+// A lens tab compares exactly two brands, so it swaps the generic controls
+// for its own: a grouped/split switch, a ranking table, and a drill-down.
+
+function isLens() { const c = activeCountryEntry(); return !!(c && c.isLens); }
+
+// Every member keyword of both brands as its own row, keeping the parent
+// brand's colour so a split chart still reads as "blue = OE, orange = Smart".
+function lensSplitRows() {
+  const rows = [];
+  (currentCountry().keywords || []).forEach(b => {
+    (b.breakdown || []).forEach((k, i) => {
+      rows.push({ kw: k.kw, sv: k.sv, m: k.m, brand: b.kw, color_idx: b.color_idx, shade: i });
+    });
+  });
+  return rows.sort((a, b) => currentValue(b) - currentValue(a));
+}
+
+// Lightens a hex colour toward white. Used to tell a brand's keywords apart
+// inside one colour family instead of scattering them across the palette.
+function tint(hex, step) {
+  const f = Math.min(0.72, step * 0.13);
+  const n = parseInt(hex.slice(1), 16);
+  const mix = c => Math.round(c + (255 - c) * f);
+  return "#" + [mix(n >> 16 & 255), mix(n >> 8 & 255), mix(n & 255)]
+    .map(c => c.toString(16).padStart(2, "0")).join("");
+}
+
 function visibleKeywords() {
   const country = currentCountry();
+  if (isLens()) {
+    const view = currentSubTab() || {};
+    // The url view has no keyword breakdown to split; its toggle swaps in a
+    // second precomputed series (home only vs home + student login).
+    if (view.toggleStudents) {
+      return country.keywords.map(k => ({
+        ...k, m: (lensIncludeStudents && k.mAll) ? k.mAll : k.m
+      }));
+    }
+    return (lensMode === "split" && view.splittable) ? lensSplitRows() : country.keywords;
+  }
   return includeDuolingo ? country.keywords : country.keywords.filter(k => k.kw !== "duolingo");
 }
 
@@ -925,7 +1080,11 @@ function currentValue(k) {
 }
 
 function displayLabel(k) { return k.isOthersGroup ? t("othersGroupLabel") : cap(k.kw); }
-function colorFor(k) { return k.isOthersGroup ? OTHERS_COLOR : PAL[k.color_idx % PAL.length]; }
+function colorFor(k) {
+  if (k.isOthersGroup) return OTHERS_COLOR;
+  const base = PAL[k.color_idx % PAL.length];
+  return (typeof k.shade === "number" && k.shade > 0) ? tint(base, k.shade) : base;
+}
 
 // Sorts by current-period value descending, then walks the accumulated
 // share: everything up to (and including) the item that first pushes the
@@ -1000,12 +1159,214 @@ function wireOthersTooltip() {
   tooltip.addEventListener("mouseleave", scheduleHide);
 }
 
+function lensPrevValue(k) {
+  // Same window as currentValue, shifted back by its own length, so the
+  // delta compares like with like instead of "period vs last month".
+  const span = toIdx - fromIdx + 1;
+  const from = fromIdx - span, to = fromIdx - 1;
+  if (from < 0) return null;
+  let sum = 0, count = 0;
+  for (let i = from; i <= to; i++) {
+    if (typeof k.m[i] === "number") { sum += k.m[i]; count++; }
+  }
+  return count ? Math.round(sum / count) : null;
+}
+
+function deltaCell(k) {
+  const prev = lensPrevValue(k), now = currentValue(k);
+  if (prev === null || prev === 0) return '<span class="delta flat">\u2014</span>';
+  const pct = ((now - prev) / prev) * 100;
+  const cls = pct > 1 ? "up" : (pct < -1 ? "down" : "flat");
+  const arrow = pct > 1 ? "\u25b2" : (pct < -1 ? "\u25bc" : "\u2192");
+  return '<span class="delta ' + cls + '">' + arrow + " " + Math.abs(pct).toFixed(0) + "%</span>";
+}
+
+function renderLensControls() {
+  const controls = document.getElementById("lensControls");
+  if (!isLens()) {
+    controls.style.display = "none";
+    document.getElementById("lensRankCard").style.display = "none";
+    document.querySelector(".group-others-row").style.display = "";
+    return;
+  }
+  // The generic "Group Others" switch is meaningless with two brands, and
+  // the lens has its own controls, so only one of them is ever up.
+  document.querySelector(".group-others-row").style.display = "none";
+  controls.style.display = "flex";
+
+  const view = currentSubTab() || {};
+  const sw = document.getElementById("lensModeSwitch");
+  sw.innerHTML = "";
+
+  if (view.toggleStudents) {
+    // Two URLs per brand: official home, plus the student login page. The
+    // student page is added to BOTH brands at once or to neither.
+    [[false, t("lensUrlHomeOnly")], [true, t("lensUrlWithStudents")]].forEach(([on, label]) => {
+      const b = document.createElement("button");
+      b.className = "lens-mode-btn" + (lensIncludeStudents === on ? " active" : "");
+      b.textContent = label;
+      b.addEventListener("click", () => { lensIncludeStudents = on; renderCountry(); });
+      sw.appendChild(b);
+    });
+    document.getElementById("lensHint").textContent =
+      lensIncludeStudents ? t("lensHintWithStudents") : t("lensHintHomeOnly");
+  } else if (view.splittable) {
+    [["grouped", t("lensModeGrouped")], ["split", t("lensModeSplit")]].forEach(([mode, label]) => {
+      const b = document.createElement("button");
+      b.className = "lens-mode-btn" + (lensMode === mode ? " active" : "");
+      b.textContent = label;
+      b.addEventListener("click", () => { lensMode = mode; activeGroup = "top5"; renderCountry(); });
+      sw.appendChild(b);
+    });
+    document.getElementById("lensHint").textContent =
+      lensMode === "grouped" ? t("lensHintGrouped") : t("lensHintSplit");
+  } else {
+    sw.style.display = "none";
+    document.getElementById("lensHint").textContent = t("lensHintSingle");
+  }
+  if (sw.children.length) sw.style.display = "";
+
+  renderLensRanking();
+}
+
+function renderLensRanking() {
+  const card = document.getElementById("lensRankCard");
+  const view = currentSubTab() || {};
+  const brands = currentCountry().keywords || [];
+  if (view.urls) { renderLensUrlTable(view); return; }
+  if (!brands.some(b => (b.breakdown || []).length > 1)) {
+    // One keyword per side (the "clean" view) — there is nothing to rank.
+    card.style.display = "none";
+    return;
+  }
+  const unit = (currentSubTab() || {}).unit;
+  document.getElementById("lensRankTitle").textContent = t("lensRankTitle");
+  document.getElementById("lensRankSub").textContent =
+    unit === "traffic" ? t("lensRankSubTraffic") : t("lensRankSub");
+
+  const body = document.getElementById("lensRankBody");
+  body.innerHTML = "";
+  brands.forEach(brand => {
+    const rows = (brand.breakdown || []).slice()
+      .map(k => ({ ...k, brand: brand.kw, color_idx: brand.color_idx }))
+      .sort((a, b) => currentValue(b) - currentValue(a));
+    const total = rows.reduce((s, k) => s + currentValue(k), 0) || 1;
+    const top = rows.slice(0, 6);
+
+    const block = document.createElement("div");
+    block.className = "lens-rank-block";
+    block.innerHTML =
+      '<div class="lens-rank-head">' +
+        '<span class="lens-dot" style="background:' + PAL[brand.color_idx % PAL.length] + '"></span>' +
+        '<span class="lens-rank-brand">' + cap(brand.kw) + '</span>' +
+        '<span class="lens-rank-total">' + fmtNum(currentValue(brand)) + '</span>' +
+        '<button class="lens-drill-btn" type="button" data-brand="' + brand.kw + '">' +
+          t("lensDrillBtn")(rows.length) + '</button>' +
+      '</div>' +
+      '<table class="lens-rank-table"><tbody>' +
+        top.map((k, i) => {
+          const v = currentValue(k);
+          const pct = (v / total) * 100;
+          return '<tr><td class="rank-n">' + (i + 1) + '</td>' +
+            '<td class="rank-kw">' + k.kw + '</td>' +
+            '<td class="rank-barcell"><span class="rank-bar" style="width:' + Math.max(pct, 1).toFixed(1) +
+              '%;background:' + tint(PAL[brand.color_idx % PAL.length], i) + '"></span></td>' +
+            '<td class="rank-v">' + fmtNum(v) + '</td>' +
+            '<td class="rank-p">' + pct.toFixed(1) + '%</td>' +
+            '<td class="rank-d">' + deltaCell(k) + '</td></tr>';
+        }).join("") +
+      '</tbody></table>' +
+      (rows.length > top.length
+        ? '<div class="lens-rank-more">' + t("lensRankMore")(rows.length - top.length) + '</div>'
+        : "");
+    body.appendChild(block);
+  });
+
+  body.querySelectorAll(".lens-drill-btn").forEach(btn => {
+    btn.addEventListener("click", () => openLensModal(btn.dataset.brand));
+  });
+  card.style.display = "block";
+}
+
+function renderLensUrlTable(view) {
+  const card = document.getElementById("lensRankCard");
+  document.getElementById("lensRankTitle").textContent = t("lensUrlTitle");
+  document.getElementById("lensRankSub").textContent = t("lensUrlSub");
+  const body = document.getElementById("lensRankBody");
+  body.innerHTML = "";
+  (currentCountry().keywords || []).forEach(brand => {
+    const urls = view.urls[brand.kw] || {};
+    const home = currentValue({ m: brand.m });
+    const withAll = brand.mAll ? currentValue({ m: brand.mAll }) : home;
+    const students = Math.max(0, withAll - home);
+    const block = document.createElement("div");
+    block.className = "lens-rank-block";
+    block.innerHTML =
+      '<div class="lens-rank-head">' +
+        '<span class="lens-dot" style="background:' + PAL[brand.color_idx % PAL.length] + '"></span>' +
+        '<span class="lens-rank-brand">' + cap(brand.kw) + '</span>' +
+      '</div>' +
+      '<table class="lens-rank-table"><tbody>' +
+        '<tr><td class="rank-kw"><code>' + (urls.home || "") + '</code></td>' +
+          '<td class="rank-tag">' + t("lensUrlHomeTag") + '</td>' +
+          '<td class="rank-v">' + fmtNum(home) + '</td></tr>' +
+        '<tr><td class="rank-kw"><code>' + (urls.student || "") + '</code></td>' +
+          '<td class="rank-tag">' + t("lensUrlStudentTag") + '</td>' +
+          '<td class="rank-v">' + fmtNum(students) + '</td></tr>' +
+      '</tbody></table>';
+    body.appendChild(block);
+  });
+  card.style.display = "block";
+}
+
+function openLensModal(brandKw) {
+  const brand = (currentCountry().keywords || []).find(b => b.kw === brandKw);
+  if (!brand) return;
+  const rows = (brand.breakdown || []).slice().sort((a, b) => currentValue(b) - currentValue(a));
+  const total = rows.reduce((s, k) => s + currentValue(k), 0) || 1;
+  const unit = (currentSubTab() || {}).unit;
+
+  document.getElementById("lensModalTitle").textContent = cap(brand.kw);
+  document.getElementById("lensModalSub").textContent =
+    t("lensModalSub")(rows.length, fmtNum(currentValue(brand)),
+                      DASHBOARD.months[fromIdx], DASHBOARD.months[toIdx],
+                      unit === "traffic" ? t("lensUnitTraffic") : t("lensUnitSearches"));
+
+  document.getElementById("lensModalBody").innerHTML =
+    '<table class="lens-modal-table"><thead><tr>' +
+      '<th>#</th><th>' + t("lensColKw") + '</th><th class="num">' + t("lensColVol") +
+      '</th><th class="num">' + t("lensColShare") + '</th><th class="num">' + t("lensColDelta") + '</th>' +
+    '</tr></thead><tbody>' +
+    rows.map((k, i) => {
+      const v = currentValue(k);
+      return '<tr><td class="rank-n">' + (i + 1) + '</td>' +
+        '<td class="rank-kw">' + k.kw + '</td>' +
+        '<td class="num">' + v.toLocaleString() + '</td>' +
+        '<td class="num">' + ((v / total) * 100).toFixed(1) + '%</td>' +
+        '<td class="num">' + deltaCell(k) + '</td></tr>';
+    }).join("") +
+    '</tbody></table>';
+
+  document.getElementById("lensModal").style.display = "flex";
+}
+
+function closeLensModal() { document.getElementById("lensModal").style.display = "none"; }
+
+function wireLensModal() {
+  document.getElementById("lensModalClose").addEventListener("click", closeLensModal);
+  document.getElementById("lensModal").addEventListener("click", e => {
+    if (e.target.id === "lensModal") closeLensModal();
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeLensModal(); });
+}
+
 function renderCountry() {
   // Scoped to #tabsRow on purpose: the sub-tabs row also uses .tab-btn, and
   // an unscoped querySelectorAll would index its buttons into
   // DASHBOARD.countries and mark the wrong tab active (or crash).
   document.querySelectorAll("#tabsRow .tab-btn").forEach((b,i) => b.classList.toggle("active", DASHBOARD.countries[i].id === activeCountryId));
   buildSubTabs();
+  renderLensControls();
   const kws = visibleKeywords();
   const grouping = computeGrouping(kws);
   currentGrouping = grouping;
@@ -1148,6 +1509,7 @@ function renderDashboard(data) {
   updateGroupOthersLabel();
   wireGroupOthersToggle();
   wireOthersTooltip();
+  wireLensModal();
   activeCountryId = DASHBOARD.countries[0].id;
   buildTabs();
   renderCountry();

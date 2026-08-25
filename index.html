@@ -54,6 +54,24 @@ header h1 span { color:var(--orange); }
 .tab-btn { font-size:13px; font-weight:600; padding:8px 16px; border-radius:20px; border:1.5px solid var(--gray-200); background:var(--white); color:var(--gray-500); cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; }
 .tab-btn:hover { border-color:var(--blue); color:var(--blue); }
 .tab-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+.subtabs-row { padding-top:0; padding-bottom:10px; }
+.sub-tab-btn { font-size:12px; padding:6px 14px; border-radius:6px; border-style:dashed; }
+.sub-tab-btn.active { border-style:solid; }
+.lens-note { max-width:1280px; margin:0 auto; padding:0 48px 14px; background:var(--gray-100); font-size:12px; color:var(--gray-500); line-height:1.6; }
+.lens-note strong { color:var(--gray-700, #334155); }
+.lens-members { margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+.lens-members-wrap { margin-top:8px; }
+.lens-kw-group { display:block; line-height:1.9; }
+.lens-kw-group em { font-style:normal; font-weight:600; color:var(--gray-500); }
+.lens-note code { background:var(--white); border:1px solid var(--gray-200); border-radius:4px; padding:1px 5px; font-size:11px; white-space:nowrap; }
+.lens-excluded { margin-top:8px; }
+.lens-excluded summary { cursor:pointer; font-weight:600; color:var(--blue); }
+.lens-excluded table { border-collapse:collapse; margin-top:8px; width:100%; max-width:560px; background:var(--white); border:1px solid var(--gray-200); border-radius:6px; overflow:hidden; }
+.lens-excluded th, .lens-excluded td { text-align:left; padding:5px 10px; border-bottom:1px solid var(--gray-100); font-size:11px; }
+.lens-excluded th { background:var(--gray-100); font-weight:600; }
+.lens-excluded .num { text-align:right; font-variant-numeric:tabular-nums; }
+.lens-excluded tr:last-child td { border-bottom:none; }
+.lens-source { margin-top:8px; font-size:11px; opacity:0.75; }
 .flag-icon { display:inline-flex; width:18px; height:13px; border-radius:2px; overflow:hidden; vertical-align:middle; margin-right:7px; box-shadow:0 0 0 1px rgba(0,0,0,0.1); flex-shrink:0; }
 .flag-icon svg { width:100%; height:100%; display:block; }
 main { max-width:1280px; margin:0 auto; padding:24px 48px 60px; display:grid; gap:28px; }
@@ -172,6 +190,8 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
 </div>
 <div class="partial-note" id="partialNote"></div>
 <div class="tabs-row" id="tabsRow"></div>
+<div class="tabs-row subtabs-row" id="subTabsRow" style="display:none;"></div>
+<div class="lens-note" id="lensNote" style="display:none;"></div>
 <main>
   <div class="group-others-row">
     <div class="group-others-control">
@@ -416,6 +436,7 @@ window.onload = () => {
 
 const PAL = ["#22C55E", "#0066FF", "#FF6600", "#7C3AED", "#06B6D4", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6", "#EF4444", "#84CC16", "#F97316", "#8B5CF6", "#64748B", "#A78BFA", "#34D399", "#FB923C", "#94A3B8", "#CBD5E1", "#FCD34D"];
 let activeCountryId = null;
+let activeSubTabId = null;
 let pieChart, barChart, trendChart, trendPctChart;
 let activeGroup = "top5";
 let fromIdx = 0, toIdx = 0;
@@ -473,7 +494,16 @@ const I18N = {
     othersNone: "Nothing to group \u2014 every keyword already stays above the 80% threshold on its own.",
     downloadHtmlLabel: "Download HTML",
     downloadHtmlTitle: "Download a self-contained copy of this dashboard (data included, no login needed) to send to anyone.",
-    countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
+    countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
+    lensViewNames: { brand:"Brand only", url:"By URL", clean:"Smart, cleaned" },
+    lensViewDesc: {
+      brand: "The brand name alone, spelled right and wrong, no modifiers \u2014 same rule applied to both sides so the comparison is fair.",
+      url: "Ahrefs' estimated organic traffic to each site in Colombia. This view counts visits, not searches, so its numbers are not comparable to the other two.",
+      clean: "Every \u201csmart\u201d search in Colombia that is the language academy, against Open English's full branded demand. The bare term \u201csmart\u201d is counted in: on the Colombian SERP smart.edu.co holds positions 1, 2, 5, 6 and 9."
+    },
+    lensExcludedTitle: (n) => "See the " + n + " excluded \u201csmart\u201d terms",
+    lensMembersTitle: (n) => "See the " + n + " keywords behind these two lines",
+    lensExcludedKw: "Term", lensExcludedVol: "Volume", lensExcludedWhy: "What it actually is",
   },
   es: {
     eyebrow: "Inteligencia de B\u00fasqueda \u00b7 LATAM + USA",
@@ -515,7 +545,16 @@ const I18N = {
     othersNone: "No hay nada que agrupar \u2014 cada keyword ya se mantiene por encima del umbral del 80% por s\u00ed sola.",
     downloadHtmlLabel: "Descargar HTML",
     downloadHtmlTitle: "Descarga una copia aut\u00f3noma de este tablero (con los datos incluidos, sin necesidad de iniciar sesi\u00f3n) para envi\u00e1rsela a cualquier persona.",
-    countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM" },
+    countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
+    lensViewNames: { brand:"Marca pura", url:"Por URL", clean:"Smart limpio" },
+    lensViewDesc: {
+      brand: "Solo el nombre de la marca, bien y mal escrito, sin modificadores \u2014 la misma regla en ambos lados para que la comparaci\u00f3n sea justa.",
+      url: "Tr\u00e1fico org\u00e1nico estimado por Ahrefs hacia cada sitio en Colombia. Esta vista cuenta visitas, no b\u00fasquedas: sus n\u00fameros no son comparables con las otras dos.",
+      clean: "Toda b\u00fasqueda de \u201csmart\u201d en Colombia que es la academia de idiomas, contra la demanda de marca completa de Open English. El t\u00e9rmino suelto \u201csmart\u201d s\u00ed cuenta: en el SERP colombiano smart.edu.co ocupa las posiciones 1, 2, 5, 6 y 9."
+    },
+    lensExcludedTitle: (n) => "Ver los " + n + " t\u00e9rminos \u201csmart\u201d excluidos",
+    lensMembersTitle: (n) => "Ver las " + n + " keywords detr\u00e1s de estas dos l\u00edneas",
+    lensExcludedKw: "T\u00e9rmino", lensExcludedVol: "Volumen", lensExcludedWhy: "Qu\u00e9 es en realidad",
   },
   pt: {
     eyebrow: "Intelig\u00eancia de Busca \u00b7 LATAM + EUA",
@@ -557,7 +596,16 @@ const I18N = {
     othersNone: "Nada para agrupar \u2014 cada palavra-chave j\u00e1 se mant\u00e9m acima do limite de 80% por conta pr\u00f3pria.",
     downloadHtmlLabel: "Baixar HTML",
     downloadHtmlTitle: "Baixe uma c\u00f3pia aut\u00f4noma deste painel (com os dados inclu\u00eddos, sem necessidade de login) para enviar a qualquer pessoa.",
-    countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM" },
+    countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM", "Colombia Smart":"Col\u00f4mbia \u00b7 Smart" },
+    lensViewNames: { brand:"S\u00f3 a marca", url:"Por URL", clean:"Smart limpo" },
+    lensViewDesc: {
+      brand: "Apenas o nome da marca, escrito certo e errado, sem modificadores \u2014 a mesma regra dos dois lados para que a compara\u00e7\u00e3o seja justa.",
+      url: "Tr\u00e1fego org\u00e2nico estimado pela Ahrefs para cada site na Col\u00f4mbia. Esta vis\u00e3o conta visitas, n\u00e3o buscas: seus n\u00fameros n\u00e3o s\u00e3o compar\u00e1veis com as outras duas.",
+      clean: "Toda busca por \u201csmart\u201d na Col\u00f4mbia que \u00e9 a academia de idiomas, contra a demanda de marca completa da Open English. O termo solto \u201csmart\u201d entra na conta: no SERP colombiano smart.edu.co ocupa as posi\u00e7\u00f5es 1, 2, 5, 6 e 9."
+    },
+    lensExcludedTitle: (n) => "Ver os " + n + " termos \u201csmart\u201d exclu\u00eddos",
+    lensMembersTitle: (n) => "Ver as " + n + " keywords por tr\u00e1s destas duas linhas",
+    lensExcludedKw: "Termo", lensExcludedVol: "Volume", lensExcludedWhy: "O que \u00e9 de verdade",
   },
 };
 
@@ -658,13 +706,91 @@ function buildTabs() {
     btn.className = "tab-btn" + (c.id === activeCountryId ? " active" : "");
     const label = t("countryNames")[c.name] || c.name;
     btn.innerHTML = '<span class="flag-icon">' + c.flag_svg + '</span>' + label;
-    btn.addEventListener("click", () => { activeCountryId = c.id; activeGroup = "top5"; renderCountry(); });
+    btn.addEventListener("click", () => {
+      activeCountryId = c.id;
+      activeGroup = "top5";
+      // Entering a tab that has sub-tabs always lands on its first one,
+      // so a sub-tab id left over from a previous visit can never leak in.
+      activeSubTabId = (c.subTabs && c.subTabs.length) ? c.subTabs[0].id : null;
+      renderCountry();
+    });
     row.appendChild(btn);
   });
 }
 
-function currentCountry() {
+// The tab a country's own sub-tabs live in ("Colombia Smart" today). Null
+// whenever the active country has none, which is every regular market.
+function activeCountryEntry() {
   return DASHBOARD.countries.find(c => c.id === activeCountryId);
+}
+
+function currentSubTab() {
+  const c = activeCountryEntry();
+  if (!c || !c.subTabs || !c.subTabs.length) return null;
+  return c.subTabs.find(s => s.id === activeSubTabId) || c.subTabs[0];
+}
+
+function buildSubTabs() {
+  const row = document.getElementById("subTabsRow");
+  const country = activeCountryEntry();
+  const subs = country && country.subTabs;
+  if (!subs || !subs.length) {
+    row.style.display = "none";
+    row.innerHTML = "";
+    document.getElementById("lensNote").style.display = "none";
+    return;
+  }
+  const active = currentSubTab();
+  row.style.display = "flex";
+  row.innerHTML = "";
+  subs.forEach(s => {
+    const btn = document.createElement("button");
+    btn.className = "tab-btn sub-tab-btn" + (s.id === active.id ? " active" : "");
+    btn.textContent = t("lensViewNames")[s.id] || s.name;
+    btn.addEventListener("click", () => { activeSubTabId = s.id; activeGroup = "top5"; renderCountry(); });
+    row.appendChild(btn);
+  });
+  renderLensNote(country, active);
+}
+
+function renderLensNote(country, view) {
+  const note = document.getElementById("lensNote");
+  const parts = [];
+  parts.push('<strong>' + (t("lensViewNames")[view.id] || view.name) + '</strong> \u2014 ' + t("lensViewDesc")[view.id]);
+  // Collapsed by default: the "clean" view lists ~70 keywords, and left
+  // open that pushes the charts below the fold on a laptop screen.
+  const groups = (view.keywords || []).filter(k => (k.members || []).length);
+  if (groups.length) {
+    const total = groups.reduce((s,k) => s + k.members.length, 0);
+    const members = groups.map(k =>
+      '<span class="lens-kw-group"><em>' + cap(k.kw) + ' (' + k.members.length + '):</em> ' +
+      k.members.map(m => '<code>' + m + '</code>').join(" ") + '</span>'
+    ).join("");
+    parts.push(
+      '<details class="lens-excluded lens-members-wrap"><summary>' + t("lensMembersTitle")(total) +
+      '</summary><div class="lens-members">' + members + '</div></details>'
+    );
+  }
+  if (view.id === "clean" && country.excluded && country.excluded.length) {
+    const rows = country.excluded.map(e =>
+      '<tr><td><code>' + e.keyword + '</code></td><td class="num">' + fmtNum(e.volume) + '</td><td>' + e.why + '</td></tr>'
+    ).join("");
+    parts.push(
+      '<details class="lens-excluded"><summary>' + t("lensExcludedTitle")(country.excluded.length) + '</summary>' +
+      '<table><thead><tr><th>' + t("lensExcludedKw") + '</th><th class="num">' + t("lensExcludedVol") +
+      '</th><th>' + t("lensExcludedWhy") + '</th></tr></thead><tbody>' + rows + '</tbody></table></details>'
+    );
+  }
+  if (country.sourceNote) parts.push('<div class="lens-source">' + country.sourceNote + '</div>');
+  note.innerHTML = parts.join("");
+  note.style.display = "block";
+}
+
+// Everything downstream (charts, filter row, grouping) reads the active
+// view through here, so a sub-tab is just "the country" as far as the rest
+// of the dashboard is concerned.
+function currentCountry() {
+  return currentSubTab() || activeCountryEntry();
 }
 
 function defaultToIdx() {
@@ -875,7 +1001,11 @@ function wireOthersTooltip() {
 }
 
 function renderCountry() {
-  document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.toggle("active", DASHBOARD.countries[i].id === activeCountryId));
+  // Scoped to #tabsRow on purpose: the sub-tabs row also uses .tab-btn, and
+  // an unscoped querySelectorAll would index its buttons into
+  // DASHBOARD.countries and mark the wrong tab active (or crash).
+  document.querySelectorAll("#tabsRow .tab-btn").forEach((b,i) => b.classList.toggle("active", DASHBOARD.countries[i].id === activeCountryId));
+  buildSubTabs();
   const kws = visibleKeywords();
   const grouping = computeGrouping(kws);
   currentGrouping = grouping;

@@ -560,6 +560,7 @@ const I18N = {
     countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
     lensViewNames: { brand:"Brand only", url:"By URL", clean:"How much they really get" },
     lensUnitSearches: "searches", lensUnitTraffic: "visits",
+    lensVsPrev: "vs previous period:",
     lensScope: (range, n, unit) => n === 1 ? (range + " · " + unit) : ("Monthly avg " + range + " (" + n + " months) · " + unit),
     lensPeriodNote: "",
     lensModeSplit: "By keyword", lensModeGrouped: "Whole brand",
@@ -631,6 +632,7 @@ const I18N = {
     countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
     lensViewNames: { brand:"Marca pura", url:"Por URL", clean:"Cuánto se llevan de verdad" },
     lensUnitSearches: "búsquedas", lensUnitTraffic: "visitas",
+    lensVsPrev: "vs periodo anterior:",
     lensScope: (range, n, unit) => n === 1 ? (range + " · " + unit) : ("Promedio mensual " + range + " (" + n + " meses) · " + unit),
     lensPeriodNote: "",
     lensModeSplit: "Por keyword", lensModeGrouped: "Marca completa",
@@ -702,6 +704,7 @@ const I18N = {
     countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM", "Colombia Smart":"Col\u00f4mbia \u00b7 Smart" },
     lensViewNames: { brand:"Só a marca", url:"Por URL", clean:"Quanto realmente levam" },
     lensUnitSearches: "buscas", lensUnitTraffic: "visitas",
+    lensVsPrev: "vs período anterior:",
     lensScope: (range, n, unit) => n === 1 ? (range + " · " + unit) : ("Média mensal " + range + " (" + n + " meses) · " + unit),
     lensPeriodNote: "",
     lensModeSplit: "Por keyword", lensModeGrouped: "Marca completa",
@@ -1205,10 +1208,39 @@ function chartBox(id, height) {
 }
 function toolbar(inner) { return '<div class="lens-toolbar">' + inner + '</div>'; }
 
+// Chart.js ships no data labels. This draws the value at the end of each
+// horizontal bar: without it a 4,929 -> 4,623 change between two periods is
+// a few pixels and reads as "the filter did nothing".
+const LensValueLabels = {
+  id: "lensValueLabels",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = "600 11px system-ui, -apple-system, Segoe UI, sans-serif";
+    ctx.textBaseline = "middle";
+    chart.data.datasets.forEach((ds, di) => {
+      const meta = chart.getDatasetMeta(di);
+      if (meta.hidden) return;
+      meta.data.forEach((el, i) => {
+        const v = ds.data[i];
+        if (v == null) return;
+        const stacked = chart.options.scales.x && chart.options.scales.x.stacked;
+        if (stacked && di !== chart.data.datasets.length - 1) return;
+        const total = stacked
+          ? chart.data.datasets.reduce((sum, d) => sum + (d.data[i] || 0), 0) : v;
+        ctx.fillStyle = "#475569";
+        ctx.textAlign = "left";
+        ctx.fillText(total.toLocaleString(), el.x + 8, el.y);
+      });
+    });
+    ctx.restore();
+  }
+};
+
 function lensBarOpts(unitLabel) {
   return {
     indexAxis: "y", responsive: true, maintainAspectRatio: false,
-    layout: { padding: { right: 18 } },
+    layout: { padding: { right: 76 } },
     plugins: {
       legend: { display: false },
       tooltip: { callbacks: { label: c => " " + c.parsed.x.toLocaleString() + " " + unitLabel } }
@@ -1242,7 +1274,10 @@ function renderLensBrandView(host) {
   const detailed = lensMode !== "grouped";
   const brands = ["smart", "open english"];
 
+  const bTot = brands.map(lensBrand).filter(Boolean);
   let html = introCard(t("lensBrandIntroTitle"), t("lensBrandIntroBody")) +
+    kpiCard(bTot.map(b => kpi(cap(b.kw), currentValue(b).toLocaleString(),
+      t("lensVsPrev") + " " + deltaHtml(b), PAL[b.color_idx % PAL.length]))) +
     toolbar('<div class="lens-mode-switch" id="lensModeSwitch"></div>' +
       (detailed ? '<label class="lens-topn">' + t("lensTopNLabel") +
         '<select id="lensTopN">' + [3, 5, 8, 100].map(n =>
@@ -1283,7 +1318,7 @@ function renderLensBrandView(host) {
         data: { labels: rows.map(r => r.kw),
                 datasets: [{ data: rows.map(r => currentValue(r)),
                              backgroundColor: rows.map((_, i) => tint(base, i)), borderRadius: 3 }] },
-        options: lensBarOpts(unit)
+        options: lensBarOpts(unit), plugins: [LensValueLabels]
       });
       const top = rows.slice(0, lensTopN), rest = rows.slice(lensTopN);
       const datasets = top.map((r, i) => ({
@@ -1304,7 +1339,7 @@ function renderLensBrandView(host) {
       data: { labels: bs.map(b => cap(b.kw)),
               datasets: [{ data: bs.map(b => currentValue(b)),
                            backgroundColor: bs.map(b => PAL[b.color_idx % PAL.length]), borderRadius: 4 }] },
-      options: lensBarOpts(unit)
+      options: lensBarOpts(unit), plugins: [LensValueLabels]
     });
     lensChart("lensBrandDonut", {
       type: "doughnut",
@@ -1360,7 +1395,7 @@ function renderLensUrlView(host, view) {
     data: { labels: parts.map(p => p.url || cap(p.kw)),
             datasets: [{ data: parts.map(p => p.val),
                          backgroundColor: parts.map(p => lensBrandColor(p.kw)), borderRadius: 4 }] },
-    options: lensBarOpts(unit)
+    options: lensBarOpts(unit), plugins: [LensValueLabels]
   });
 }
 
@@ -1414,8 +1449,10 @@ function renderLensCleanView(host, view) {
       scales: {
         x: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtNum(v) }, grid: { color: "#EEF2F7" } },
         y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11.5 } } }
-      }
-    }
+      },
+      layout: { padding: { right: 76 } }
+    },
+    plugins: [LensValueLabels]
   });
 
   // Solid line = all searches for the term. Dashed = the share of them the

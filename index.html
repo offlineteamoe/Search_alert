@@ -72,6 +72,11 @@ header h1 span { color:var(--orange); }
 .lens-excluded .num { text-align:right; font-variant-numeric:tabular-nums; }
 .lens-excluded tr:last-child td { border-bottom:none; }
 .lens-source { margin-top:8px; font-size:11px; opacity:0.75; }
+.avg-note { max-width:1280px; margin:0 auto; padding:0 48px 12px; background:var(--gray-100); }
+.avg-note-inner { display:flex; align-items:flex-start; gap:9px; background:#EEF3FF; border:1px solid #D6E0FF; border-radius:8px; padding:9px 14px; font-size:12px; line-height:1.55; color:#1E3A8A; }
+.avg-note-inner b { font-weight:700; }
+.avg-note-icon { flex:none; font-size:13px; line-height:1.35; }
+@media (max-width:860px) { .avg-note { padding-left:20px; padding-right:20px; } }
 .lens-toolbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
 .lens-mode-switch { display:inline-flex; background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; padding:3px; gap:3px; }
 .lens-mode-btn { font-size:12px; font-weight:600; padding:6px 14px; border:none; border-radius:6px; background:transparent; color:var(--gray-500); cursor:pointer; transition:all 0.15s; }
@@ -238,6 +243,7 @@ footer { text-align:center; font-size:11px; color:var(--gray-500); padding:0 48p
   <div class="period-spacer"></div>
   <button class="toggle-btn" id="duolingoToggle">Include Duolingo</button>
 </div>
+<div class="avg-note" id="avgNote"></div>
 <div class="partial-note" id="partialNote"></div>
 <div class="tabs-row" id="tabsRow"></div>
 <div class="tabs-row subtabs-row" id="subTabsRow" style="display:none;"></div>
@@ -559,6 +565,8 @@ const I18N = {
     downloadHtmlLabel: "Download HTML",
     downloadHtmlTitle: "Download a self-contained copy of this dashboard (data included, no login needed) to send to anyone.",
     countryNames: { Brazil:"Brazil", USA:"USA", Argentina:"Argentina", Mexico:"Mexico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
+    avgNoteRange: (n, a, b) => '<div class="avg-note-inner"><span class="avg-note-icon">ℹ</span><span>Every figure below is the <b>monthly average</b> across ' + a + ' – ' + b + ' (' + n + ' months), <b>not a cumulative total</b>. Pick a single month to see that month on its own.</span></div>',
+    avgNoteSingle: (m) => '<div class="avg-note-inner"><span class="avg-note-icon">ℹ</span><span>Every figure below is for <b>' + m + '</b> alone. Pick a wider range and they become the monthly average of that range.</span></div>',
     lensViewNames: { brand:"Brand only", url:"By URL", clean:"How much they really get" },
     lensUnitSearches: "searches", lensUnitTraffic: "visits",
     lensVsPrev: "vs previous period:",
@@ -634,6 +642,8 @@ const I18N = {
     downloadHtmlLabel: "Descargar HTML",
     downloadHtmlTitle: "Descarga una copia aut\u00f3noma de este tablero (con los datos incluidos, sin necesidad de iniciar sesi\u00f3n) para envi\u00e1rsela a cualquier persona.",
     countryNames: { Brazil:"Brasil", USA:"EE. UU.", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Colombia", LATAM:"LATAM", "Colombia Smart":"Colombia \u00b7 Smart" },
+    avgNoteRange: (n, a, b) => '<div class="avg-note-inner"><span class="avg-note-icon">ℹ</span><span>Todas las cifras de abajo son el <b>promedio mensual</b> de ' + a + ' – ' + b + ' (' + n + ' meses), <b>no el total acumulado</b>. Elige un solo mes para ver ese mes aparte.</span></div>',
+    avgNoteSingle: (m) => '<div class="avg-note-inner"><span class="avg-note-icon">ℹ</span><span>Todas las cifras de abajo corresponden solo a <b>' + m + '</b>. Si eliges un rango más amplio, pasan a ser el promedio mensual de ese rango.</span></div>',
     lensViewNames: { brand:"Marca pura", url:"Por URL", clean:"Cuánto se llevan de verdad" },
     lensUnitSearches: "búsquedas", lensUnitTraffic: "visitas",
     lensVsPrev: "vs periodo anterior:",
@@ -709,6 +719,8 @@ const I18N = {
     downloadHtmlLabel: "Baixar HTML",
     downloadHtmlTitle: "Baixe uma c\u00f3pia aut\u00f4noma deste painel (com os dados inclu\u00eddos, sem necessidade de login) para enviar a qualquer pessoa.",
     countryNames: { Brazil:"Brasil", USA:"EUA", Argentina:"Argentina", Mexico:"M\u00e9xico", Chile:"Chile", Colombia:"Col\u00f4mbia", LATAM:"LATAM", "Colombia Smart":"Col\u00f4mbia \u00b7 Smart" },
+    avgNoteRange: (n, a, b) => '<div class="avg-note-inner"><span class="avg-note-icon">ℹ</span><span>Todos os números abaixo são a <b>média mensal</b> de ' + a + ' – ' + b + ' (' + n + ' meses), <b>não o total acumulado</b>. Escolha um único mês para ver aquele mês sozinho.</span></div>',
+    avgNoteSingle: (m) => '<div class="avg-note-inner"><span class="avg-note-icon">ℹ</span><span>Todos os números abaixo são apenas de <b>' + m + '</b>. Escolha um intervalo maior e passam a ser a média mensal dele.</span></div>',
     lensViewNames: { brand:"Só a marca", url:"Por URL", clean:"Quanto realmente levam" },
     lensUnitSearches: "buscas", lensUnitTraffic: "visitas",
     lensVsPrev: "vs período anterior:",
@@ -797,6 +809,7 @@ function setLanguage(lang) {
   updateGroupOthersLabel();
   relabelPeriodSelectors();
   updatePartialNote();
+  updateAvgNote();
   buildTabs();
   renderCountry();
 }
@@ -898,6 +911,18 @@ function defaultToIdx() {
   return typeof DASHBOARD.default_to_index === "number" ? DASHBOARD.default_to_index : DASHBOARD.months.length - 1;
 }
 
+// Stated permanently, on every tab: this dashboard averages, it does not
+// accumulate. Without saying so, "22,397" for a 13-month range sitting next
+// to "20,832" for a single month reads as impossible.
+function updateAvgNote() {
+  const el = document.getElementById("avgNote");
+  if (!el) return;
+  const n = toIdx - fromIdx + 1;
+  el.innerHTML = n === 1
+    ? t("avgNoteSingle")(DASHBOARD.months[toIdx])
+    : t("avgNoteRange")(n, DASHBOARD.months[fromIdx], DASHBOARD.months[toIdx]);
+}
+
 function updatePartialNote() {
   const note = document.getElementById("partialNote");
   const isPartialSelected = DASHBOARD.partial_month_index != null && toIdx === DASHBOARD.partial_month_index;
@@ -948,6 +973,7 @@ function updateQuickRangeButtons() {
 function onRangeChanged() {
   updateSelectConstraints();
   updatePartialNote();
+  updateAvgNote();
   updateQuickRangeButtons();
   setGlobalStats();
   renderCountry();
@@ -976,6 +1002,7 @@ function populatePeriodSelectors() {
   fromSel.value = fromIdx; toSel.value = toIdx;
   updateSelectConstraints();
   updatePartialNote();
+  updateAvgNote();
   updateQuickRangeButtons();
   fromSel.onchange = () => {
     // Picking a "from" month always pushes "to" forward if needed — the
